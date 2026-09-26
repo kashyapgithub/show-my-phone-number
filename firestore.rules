@@ -1,0 +1,15 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default deny: Block all unauthorized collections
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // User-isolated storage: Users can only read and write their own numbers and cards
+    match /users/{userId}/numbers/{numberId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+  }
+}
