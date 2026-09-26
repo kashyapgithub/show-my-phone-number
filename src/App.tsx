@@ -4,7 +4,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { PhoneNumberItem, GroupingFormat, ItemType, MAX_NUMBERS_LIMIT } from './types';
+import { PhoneNumberItem, GroupingFormat, ItemType, ScannedBillResult, MAX_NUMBERS_LIMIT } from './types';
 import { 
   loadStoredNumbers, 
   saveStoredNumbers, 
@@ -13,13 +13,16 @@ import {
 import { NumberListScreen } from './components/NumberListScreen';
 import { DisplayScreen } from './components/DisplayScreen';
 import { AddEditModal } from './components/AddEditModal';
+import { BillScanModal } from './components/BillScanModal';
 import { triggerHaptic } from './utils/haptics';
 
 export default function App() {
   const [numbers, setNumbers] = useState<PhoneNumberItem[]>(() => loadStoredNumbers());
   const [activeDisplayNumber, setActiveDisplayNumber] = useState<PhoneNumberItem | null>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState<boolean>(false);
+  const [isScanModalOpen, setIsScanModalOpen] = useState<boolean>(false);
   const [editingItem, setEditingItem] = useState<PhoneNumberItem | null>(null);
+  const [prefilledScannedData, setPrefilledScannedData] = useState<ScannedBillResult | null>(null);
   const [hasCheckedFirstLaunch, setHasCheckedFirstLaunch] = useState<boolean>(false);
 
   // Sync to local storage whenever numbers change
@@ -57,11 +60,29 @@ export default function App() {
       return;
     }
     setEditingItem(null);
+    setPrefilledScannedData(null);
+    setIsAddModalOpen(true);
+  };
+
+  const handleOpenScan = () => {
+    if (numbers.length >= MAX_NUMBERS_LIMIT) {
+      triggerHaptic('heavy');
+      return;
+    }
+    triggerHaptic('light');
+    setIsScanModalOpen(true);
+  };
+
+  const handleApplyScanResult = (result: ScannedBillResult) => {
+    setIsScanModalOpen(false);
+    setEditingItem(null);
+    setPrefilledScannedData(result);
     setIsAddModalOpen(true);
   };
 
   const handleEdit = (item: PhoneNumberItem) => {
     setEditingItem(item);
+    setPrefilledScannedData(null);
     setIsAddModalOpen(true);
   };
 
@@ -163,6 +184,7 @@ export default function App() {
           numbers={numbers}
           onSelectNumber={(item) => setActiveDisplayNumber(item)}
           onAddNew={handleAddNew}
+          onScanBill={handleOpenScan}
           onEdit={handleEdit}
           onDelete={handleDelete}
           onSetPrimary={handleSetPrimary}
@@ -176,10 +198,19 @@ export default function App() {
         onClose={() => {
           setIsAddModalOpen(false);
           setEditingItem(null);
+          setPrefilledScannedData(null);
         }}
         onSave={handleSaveItem}
         editingItem={editingItem}
+        prefilledScannedData={prefilledScannedData}
         currentCount={numbers.length}
+      />
+
+      {/* Global Bill / Receipt Scan Modal */}
+      <BillScanModal
+        isOpen={isScanModalOpen}
+        onClose={() => setIsScanModalOpen(false)}
+        onApplyResult={handleApplyScanResult}
       />
     </div>
   );

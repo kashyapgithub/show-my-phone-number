@@ -11,7 +11,8 @@ import {
   Check,
   CreditCard,
   Phone,
-  Store
+  Store,
+  Camera
 } from 'lucide-react';
 import { PhoneNumberItem, MAX_NUMBERS_LIMIT } from '../types';
 import { formatIdentifier } from '../utils/formatter';
@@ -22,6 +23,7 @@ interface NumberListScreenProps {
   numbers: PhoneNumberItem[];
   onSelectNumber: (item: PhoneNumberItem) => void;
   onAddNew: () => void;
+  onScanBill: () => void;
   onEdit: (item: PhoneNumberItem) => void;
   onDelete: (id: string) => void;
   onSetPrimary: (id: string) => void;
@@ -32,6 +34,7 @@ export function NumberListScreen({
   numbers,
   onSelectNumber,
   onAddNew,
+  onScanBill,
   onEdit,
   onDelete,
   onSetPrimary,
@@ -88,23 +91,42 @@ export function NumberListScreen({
             </div>
           </div>
 
-          {/* Add Entry Header Action */}
-          <button
-            onClick={() => {
-              triggerHaptic('light');
-              onAddNew();
-            }}
-            disabled={isAtLimit}
-            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all min-h-[44px] shadow-sm ${
-              isAtLimit
-                ? 'bg-zinc-200 dark:bg-zinc-800 text-zinc-400 cursor-not-allowed opacity-60'
-                : 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 hover:opacity-90 active:scale-95'
-            }`}
-            aria-label="Add new entry"
-          >
-            <Plus className="w-4 h-4 stroke-[2.5]" />
-            <span>Add Entry</span>
-          </button>
+          {/* Header Action Buttons */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                triggerHaptic('light');
+                onScanBill();
+              }}
+              disabled={isAtLimit}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs sm:text-sm font-bold border transition-all min-h-[44px] ${
+                isAtLimit
+                  ? 'border-zinc-200 dark:border-zinc-800 text-zinc-400 cursor-not-allowed opacity-60'
+                  : 'border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 hover:border-zinc-900 dark:hover:border-zinc-400 active:scale-95'
+              }`}
+              aria-label="Scan bill or receipt"
+            >
+              <Camera className="w-4 h-4 stroke-[2]" />
+              <span className="hidden xs:inline">Scan Bill</span>
+            </button>
+
+            <button
+              onClick={() => {
+                triggerHaptic('light');
+                onAddNew();
+              }}
+              disabled={isAtLimit}
+              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all min-h-[44px] shadow-sm ${
+                isAtLimit
+                  ? 'bg-zinc-200 dark:bg-zinc-800 text-zinc-400 cursor-not-allowed opacity-60'
+                  : 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 hover:opacity-90 active:scale-95'
+              }`}
+              aria-label="Add new entry"
+            >
+              <Plus className="w-4 h-4 stroke-[2.5]" />
+              <span>Add Entry</span>
+            </button>
+          </div>
         </div>
       </header>
 
@@ -133,13 +155,13 @@ export function NumberListScreen({
               Add your phone numbers or brand customer IDs once, then hold up your screen at checkout counters so cashiers can read it without shouting across the store.
             </p>
 
-            <div className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-3">
+            <div className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-2.5">
               <button
                 onClick={() => {
                   triggerHaptic('medium');
                   onAddNew();
                 }}
-                className="w-full sm:w-auto px-6 py-3.5 rounded-xl bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 font-bold text-sm shadow-md hover:opacity-90 active:scale-95 transition-all flex items-center justify-center gap-2 min-h-[48px]"
+                className="w-full sm:w-auto px-5 py-3 rounded-xl bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 font-bold text-sm shadow-md hover:opacity-90 active:scale-95 transition-all flex items-center justify-center gap-2 min-h-[46px]"
               >
                 <Plus className="w-4 h-4 stroke-[2.5]" />
                 <span>Add First Entry</span>
@@ -148,11 +170,22 @@ export function NumberListScreen({
               <button
                 onClick={() => {
                   triggerHaptic('light');
+                  onScanBill();
+                }}
+                className="w-full sm:w-auto px-5 py-3 rounded-xl border border-zinc-300 dark:border-zinc-700 text-zinc-800 dark:text-zinc-200 font-bold text-xs hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors min-h-[46px] flex items-center justify-center gap-2"
+              >
+                <Camera className="w-4 h-4" />
+                <span>Scan Receipt / Bill</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  triggerHaptic('light');
                   onLoadDemo();
                 }}
-                className="w-full sm:w-auto px-5 py-3 rounded-xl border border-zinc-300 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 font-semibold text-xs hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors min-h-[44px]"
+                className="w-full sm:w-auto px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-800 text-zinc-500 dark:text-zinc-400 font-semibold text-xs hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors min-h-[46px]"
               >
-                Load Sample Numbers &amp; Cards
+                Load Samples
               </button>
             </div>
           </div>
@@ -365,11 +398,23 @@ export function NumberListScreen({
 
       {/* Sticky Bottom Bar for Mobile Ergonomics (Thumb Zone) */}
       <footer className="sticky bottom-0 z-20 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md border-t border-zinc-200 dark:border-zinc-800 p-4">
-        <div className="max-w-2xl mx-auto flex items-center justify-between gap-3">
-          <div className="text-xs text-zinc-500 dark:text-zinc-400 flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-            <span>Local &amp; Offline Ready</span>
-          </div>
+        <div className="max-w-2xl mx-auto flex items-center justify-between gap-2.5">
+          <button
+            onClick={() => {
+              triggerHaptic('light');
+              onScanBill();
+            }}
+            disabled={isAtLimit}
+            className={`px-4 py-3 rounded-xl border border-zinc-300 dark:border-zinc-700 font-bold text-xs sm:text-sm transition-all flex items-center justify-center gap-1.5 min-h-[48px] ${
+              isAtLimit
+                ? 'opacity-50 cursor-not-allowed'
+                : 'bg-white dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 hover:border-zinc-900 dark:hover:border-zinc-400 active:scale-[0.98]'
+            }`}
+            aria-label="Scan bill or receipt"
+          >
+            <Camera className="w-4 h-4 stroke-[2]" />
+            <span>Scan Bill</span>
+          </button>
 
           <button
             onClick={() => {
@@ -377,7 +422,7 @@ export function NumberListScreen({
               onAddNew();
             }}
             disabled={isAtLimit}
-            className={`w-full sm:w-auto flex-1 sm:flex-initial px-6 py-3 rounded-xl font-bold text-sm shadow-md transition-all flex items-center justify-center gap-2 min-h-[48px] ${
+            className={`flex-1 px-5 py-3 rounded-xl font-bold text-xs sm:text-sm shadow-md transition-all flex items-center justify-center gap-2 min-h-[48px] ${
               isAtLimit
                 ? 'bg-zinc-200 dark:bg-zinc-800 text-zinc-400 cursor-not-allowed'
                 : 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 hover:opacity-90 active:scale-[0.98]'

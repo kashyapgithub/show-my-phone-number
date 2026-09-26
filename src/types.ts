@@ -24,4 +24,14 @@ export interface AppSettings {
   orientationFlip: boolean;
 }
 
+export interface ScannedBillResult {
+  brandName: string;
+  customerId: string;
+  phoneNumber?: string;
+  itemType: ItemType;
+  notes?: string;
+  confidence: 'high' | 'medium' | 'low';
+  rawSummary?: string;
+}
+
 export const MAX_NUMBERS_LIMIT = 20;

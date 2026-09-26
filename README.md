@@ -42,6 +42,12 @@ Show My Number restores consumer autonomy by decoupling retail loyalty identific
 - **Sequential Audio Enunciation**: Uses the Web Speech API to read digits or spell out alphanumeric customer IDs with controlled pauses, designed for loud environments or visually impaired operators.
 - **Brand Cards & Phone Slots**: Supports up to 20 saved entries across phone numbers and brand customer IDs, with store brand tagging, instant category filtering (All, Phones, Cards), and primary default pinning.
 
+### AI-Powered Receipt and Bill Scanner
+- **Merchant Brand Extraction**: Uses Google Gemini 2.5 Flash Vision (`@google/genai`) to automatically read receipt and invoice headers, identifying store and merchant brand names (e.g., Costco, Decathlon, Starbucks, Target, Walmart).
+- **Customer and Membership ID Detection**: Automatically parses and extracts member numbers, loyalty account IDs, and phone numbers printed on physical store bills or paper slips.
+- **Client-Side Image Optimization**: Preprocesses and compresses camera photos and receipt images directly on-device using HTML5 Canvas prior to inference, minimizing bandwidth and latency.
+- **Flexible Key and Demo Modes**: Supports personal Google Gemini API keys stored strictly on the local device, as well as offline sample bill presets for testing and demonstration.
+
 ---
 
 ## Technology Stack
@@ -49,6 +55,7 @@ Show My Number restores consumer autonomy by decoupling retail loyalty identific
 - **Frontend Core**: React 19, TypeScript, Vite
 - **Styling**: Tailwind CSS v4, JetBrains Mono, Plus Jakarta Sans
 - **Mobile Runtime**: Capacitor (Native Android runtime)
+- **AI & Vision Analysis**: Google Gemini 2.5 Flash (`@google/genai`)
 - **Icons**: Lucide React
 - **QR Generation**: QRCode
 - **Browser APIs**: Screen Wake Lock API, Web Speech API

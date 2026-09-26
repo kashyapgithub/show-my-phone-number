@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { X, Check, Phone, Tag, Star, LayoutGrid, AlertCircle, CreditCard, Store, FileText } from 'lucide-react';
-import { PhoneNumberItem, GroupingFormat, ItemType } from '../types';
+import { X, Check, Phone, Tag, Star, LayoutGrid, AlertCircle, CreditCard, Store, FileText, Camera } from 'lucide-react';
+import { PhoneNumberItem, GroupingFormat, ItemType, ScannedBillResult } from '../types';
 import { validatePhoneNumber, validateCustomerId, formatPhoneNumber, formatIdentifier } from '../utils/formatter';
 import { triggerHaptic } from '../utils/haptics';
+import { BillScanModal } from './BillScanModal';
 
 interface AddEditModalProps {
   isOpen: boolean;
@@ -17,6 +18,7 @@ interface AddEditModalProps {
     isPrimary: boolean;
   }) => void;
   editingItem?: PhoneNumberItem | null;
+  prefilledScannedData?: ScannedBillResult | null;
   currentCount: number;
 }
 
@@ -28,6 +30,7 @@ export function AddEditModal({
   onClose,
   onSave,
   editingItem,
+  prefilledScannedData,
   currentCount,
 }: AddEditModalProps) {
   const [itemType, setItemType] = useState<ItemType>('phone');
@@ -38,9 +41,26 @@ export function AddEditModal({
   const [grouping, setGrouping] = useState<GroupingFormat>('smart');
   const [isPrimary, setIsPrimary] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
+  const [isScanModalOpen, setIsScanModalOpen] = useState<boolean>(false);
 
   useEffect(() => {
-    if (editingItem) {
+    if (prefilledScannedData) {
+      setItemType(prefilledScannedData.itemType);
+      setBrandName(prefilledScannedData.brandName || '');
+      const val = prefilledScannedData.itemType === 'customer_id'
+        ? (prefilledScannedData.customerId || prefilledScannedData.phoneNumber || '')
+        : (prefilledScannedData.phoneNumber || prefilledScannedData.customerId || '');
+      setRawNumber(val);
+      if (prefilledScannedData.brandName) {
+        setLabel(`${prefilledScannedData.brandName} Card`);
+      } else {
+        setLabel(prefilledScannedData.itemType === 'customer_id' ? `Account ${currentCount + 1}` : `Number ${currentCount + 1}`);
+      }
+      setNotes(prefilledScannedData.notes || '');
+      setGrouping('smart');
+      setIsPrimary(currentCount === 0);
+      setError('');
+    } else if (editingItem) {
       setItemType(editingItem.itemType || 'phone');
       setBrandName(editingItem.brandName || '');
       setLabel(editingItem.label);
@@ -59,9 +79,25 @@ export function AddEditModal({
       setIsPrimary(currentCount === 0);
       setError('');
     }
-  }, [editingItem, isOpen, currentCount]);
+  }, [editingItem, prefilledScannedData, isOpen, currentCount]);
 
   if (!isOpen) return null;
+
+  const handleApplyScannedResult = (result: ScannedBillResult) => {
+    setItemType(result.itemType);
+    if (result.brandName) {
+      setBrandName(result.brandName);
+      setLabel(`${result.brandName} Card`);
+    }
+    const val = result.itemType === 'customer_id'
+      ? (result.customerId || result.phoneNumber || '')
+      : (result.phoneNumber || result.customerId || '');
+    setRawNumber(val);
+    if (result.notes) {
+      setNotes(result.notes);
+    }
+    setError('');
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -142,6 +178,33 @@ export function AddEditModal({
 
         {/* Modal Form */}
         <form onSubmit={handleSubmit} className="p-6 overflow-y-auto space-y-5">
+          {/* Scan Bill / Receipt Feature Banner */}
+          <div className="flex items-center justify-between p-3.5 rounded-2xl bg-zinc-100 dark:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-700">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-xl bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 flex items-center justify-center">
+                <Camera className="w-4 h-4" />
+              </div>
+              <div>
+                <div className="text-xs font-bold text-zinc-900 dark:text-white leading-tight">
+                  Scan Receipt or Invoice
+                </div>
+                <div className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5">
+                  AI extracts store brand &amp; customer ID
+                </div>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                triggerHaptic('light');
+                setIsScanModalOpen(true);
+              }}
+              className="px-3 py-1.5 rounded-xl bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 text-xs font-bold shadow-sm hover:opacity-90 active:scale-95 transition-all min-h-[36px] flex items-center gap-1.5"
+            >
+              <span>Scan Bill</span>
+            </button>
+          </div>
+
           {/* Entry Type Selector */}
           <div>
             <label className="block text-xs font-bold uppercase tracking-wider text-zinc-600 dark:text-zinc-400 mb-1.5">
@@ -429,6 +492,13 @@ export function AddEditModal({
           </div>
         </form>
       </div>
+
+      {/* Embedded Bill / Receipt Scanner Modal */}
+      <BillScanModal
+        isOpen={isScanModalOpen}
+        onClose={() => setIsScanModalOpen(false)}
+        onApplyResult={handleApplyScannedResult}
+      />
     </div>
   );
 }
