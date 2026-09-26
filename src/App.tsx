@@ -4,16 +4,26 @@
  */
 
 import { useState, useEffect } from 'react';
+import { User } from 'firebase/auth';
 import { PhoneNumberItem, GroupingFormat, ItemType, ScannedBillResult, MAX_NUMBERS_LIMIT } from './types';
 import { 
   loadStoredNumbers, 
   saveStoredNumbers, 
   getSampleNumbers 
 } from './utils/storage';
+import { subscribeToAuthChanges } from './services/authService';
+import { 
+  saveNumberToCloud, 
+  deleteNumberFromCloud, 
+  setPrimaryNumberInCloud, 
+  syncLocalNumbersToCloud, 
+  subscribeToUserNumbers 
+} from './services/dbService';
 import { NumberListScreen } from './components/NumberListScreen';
 import { DisplayScreen } from './components/DisplayScreen';
 import { AddEditModal } from './components/AddEditModal';
 import { BillScanModal } from './components/BillScanModal';
+import { AccountModal } from './components/AccountModal';
 import { triggerHaptic } from './utils/haptics';
 
 export default function App() {
@@ -21,14 +31,56 @@ export default function App() {
   const [activeDisplayNumber, setActiveDisplayNumber] = useState<PhoneNumberItem | null>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState<boolean>(false);
   const [isScanModalOpen, setIsScanModalOpen] = useState<boolean>(false);
+  const [isAccountModalOpen, setIsAccountModalOpen] = useState<boolean>(false);
   const [editingItem, setEditingItem] = useState<PhoneNumberItem | null>(null);
   const [prefilledScannedData, setPrefilledScannedData] = useState<ScannedBillResult | null>(null);
   const [hasCheckedFirstLaunch, setHasCheckedFirstLaunch] = useState<boolean>(false);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
 
-  // Sync to local storage whenever numbers change
+  // Sync to local storage whenever numbers change for instant offline backup
   useEffect(() => {
     saveStoredNumbers(numbers);
   }, [numbers]);
+
+  // Subscribe to Firebase Authentication state changes
+  useEffect(() => {
+    const unsubscribeAuth = subscribeToAuthChanges((user) => {
+      setCurrentUser(user);
+    });
+    return () => {
+      if (unsubscribeAuth) unsubscribeAuth();
+    };
+  }, []);
+
+  // Synchronize with Cloud Firestore when user signs in or out
+  useEffect(() => {
+    if (currentUser) {
+      const localNums = loadStoredNumbers();
+      if (localNums.length > 0) {
+        syncLocalNumbersToCloud(currentUser.uid, localNums);
+      }
+
+      const unsubscribeDb = subscribeToUserNumbers(
+        currentUser.uid,
+        (cloudNumbers) => {
+          if (cloudNumbers.length > 0) {
+            setNumbers(cloudNumbers);
+          } else if (localNums.length > 0) {
+            syncLocalNumbersToCloud(currentUser.uid, localNums);
+          }
+        },
+        (error) => {
+          console.warn('Realtime database sync notice:', error);
+        }
+      );
+
+      return () => {
+        if (unsubscribeDb) unsubscribeDb();
+      };
+    } else {
+      setNumbers(loadStoredNumbers());
+    }
+  }, [currentUser]);
 
   // Prompt immediately to add first number on zero-numbers cold start (PRD Section 5)
   useEffect(() => {
@@ -47,7 +99,6 @@ export default function App() {
       if (updated) {
         setActiveDisplayNumber(updated);
       } else {
-        // If deleted while viewing
         setActiveDisplayNumber(null);
       }
     }
@@ -87,17 +138,27 @@ export default function App() {
   };
 
   const handleDelete = (id: string) => {
+    if (currentUser) {
+      deleteNumberFromCloud(currentUser.uid, id).catch(console.error);
+    }
+
     setNumbers((prev) => {
       const remaining = prev.filter((n) => n.id !== id);
-      // If deleted was primary and others exist, make first one primary
       if (remaining.length > 0 && !remaining.some((n) => n.isPrimary)) {
         remaining[0].isPrimary = true;
+        if (currentUser) {
+          setPrimaryNumberInCloud(currentUser.uid, remaining[0].id, remaining).catch(console.error);
+        }
       }
       return remaining;
     });
   };
 
   const handleSetPrimary = (id: string) => {
+    if (currentUser) {
+      setPrimaryNumberInCloud(currentUser.uid, id, numbers).catch(console.error);
+    }
+
     setNumbers((prev) =>
       prev.map((item) => ({
         ...item,
@@ -115,56 +176,68 @@ export default function App() {
     grouping: GroupingFormat;
     isPrimary: boolean;
   }) => {
-    setNumbers((prev) => {
-      if (editingItem) {
-        // Editing existing
-        return prev.map((item) => {
+    if (editingItem) {
+      const updatedItem: PhoneNumberItem = {
+        ...editingItem,
+        label: itemData.label,
+        rawNumber: itemData.rawNumber,
+        itemType: itemData.itemType || 'phone',
+        brandName: itemData.brandName,
+        notes: itemData.notes,
+        grouping: itemData.grouping,
+        isPrimary: itemData.isPrimary,
+      };
+
+      if (currentUser) {
+        saveNumberToCloud(currentUser.uid, updatedItem).catch(console.error);
+      }
+
+      setNumbers((prev) =>
+        prev.map((item) => {
           if (item.id === editingItem.id) {
-            return {
-              ...item,
-              label: itemData.label,
-              rawNumber: itemData.rawNumber,
-              itemType: itemData.itemType || 'phone',
-              brandName: itemData.brandName,
-              notes: itemData.notes,
-              grouping: itemData.grouping,
-              isPrimary: itemData.isPrimary,
-            };
+            return updatedItem;
           }
-          // If edited item marked as primary, unmark others
           if (itemData.isPrimary) {
             return { ...item, isPrimary: false };
           }
           return item;
-        });
-      } else {
-        // Adding new
-        if (prev.length >= MAX_NUMBERS_LIMIT) return prev;
+        })
+      );
+    } else {
+      if (numbers.length >= MAX_NUMBERS_LIMIT) return;
 
-        const newItem: PhoneNumberItem = {
-          id: `num_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
-          label: itemData.label,
-          rawNumber: itemData.rawNumber,
-          itemType: itemData.itemType || 'phone',
-          brandName: itemData.brandName,
-          notes: itemData.notes,
-          grouping: itemData.grouping,
-          isPrimary: itemData.isPrimary || prev.length === 0,
-          createdAt: Date.now(),
-        };
+      const newItem: PhoneNumberItem = {
+        id: `num_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+        label: itemData.label,
+        rawNumber: itemData.rawNumber,
+        itemType: itemData.itemType || 'phone',
+        brandName: itemData.brandName,
+        notes: itemData.notes,
+        grouping: itemData.grouping,
+        isPrimary: itemData.isPrimary || numbers.length === 0,
+        createdAt: Date.now(),
+      };
 
+      if (currentUser) {
+        saveNumberToCloud(currentUser.uid, newItem).catch(console.error);
+      }
+
+      setNumbers((prev) => {
         const updated = itemData.isPrimary
           ? prev.map((n) => ({ ...n, isPrimary: false }))
           : [...prev];
 
         return [...updated, newItem];
-      }
-    });
+      });
+    }
   };
 
   const handleLoadDemo = () => {
     const demos = getSampleNumbers();
     setNumbers(demos);
+    if (currentUser) {
+      syncLocalNumbersToCloud(currentUser.uid, demos);
+    }
     triggerHaptic('medium');
   };
 
@@ -182,6 +255,8 @@ export default function App() {
         /* Home List Screen */
         <NumberListScreen
           numbers={numbers}
+          currentUser={currentUser}
+          onOpenAccount={() => setIsAccountModalOpen(true)}
           onSelectNumber={(item) => setActiveDisplayNumber(item)}
           onAddNew={handleAddNew}
           onScanBill={handleOpenScan}
@@ -211,6 +286,14 @@ export default function App() {
         isOpen={isScanModalOpen}
         onClose={() => setIsScanModalOpen(false)}
         onApplyResult={handleApplyScanResult}
+      />
+
+      {/* Account & Cloud Sync Modal */}
+      <AccountModal
+        isOpen={isAccountModalOpen}
+        onClose={() => setIsAccountModalOpen(false)}
+        currentUser={currentUser}
+        itemCount={numbers.length}
       />
     </div>
   );

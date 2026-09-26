@@ -12,8 +12,11 @@ import {
   CreditCard,
   Phone,
   Store,
-  Camera
+  Camera,
+  User as UserIcon,
+  Cloud
 } from 'lucide-react';
+import { User } from 'firebase/auth';
 import { PhoneNumberItem, MAX_NUMBERS_LIMIT } from '../types';
 import { formatIdentifier } from '../utils/formatter';
 import { triggerHaptic } from '../utils/haptics';
@@ -21,6 +24,8 @@ import { PrivacyFootnote } from './PrivacyFootnote';
 
 interface NumberListScreenProps {
   numbers: PhoneNumberItem[];
+  currentUser: User | null;
+  onOpenAccount: () => void;
   onSelectNumber: (item: PhoneNumberItem) => void;
   onAddNew: () => void;
   onScanBill: () => void;
@@ -32,6 +37,8 @@ interface NumberListScreenProps {
 
 export function NumberListScreen({
   numbers,
+  currentUser,
+  onOpenAccount,
   onSelectNumber,
   onAddNew,
   onScanBill,
@@ -82,10 +89,13 @@ export function NumberListScreen({
                 Show My Number
               </h1>
               <div className="flex items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400 mt-1">
-                <span>Cashier display &amp; store cards</span>
+                <span>{numbers.length}/{MAX_NUMBERS_LIMIT} slots</span>
                 <span aria-hidden="true">·</span>
-                <span className="font-semibold text-zinc-700 dark:text-zinc-300">
-                  {numbers.length} of {MAX_NUMBERS_LIMIT} slots
+                <span className={`inline-flex items-center gap-1 font-semibold ${
+                  currentUser ? 'text-emerald-600 dark:text-emerald-400' : 'text-zinc-500 dark:text-zinc-400'
+                }`}>
+                  <Cloud className="w-3 h-3" />
+                  <span>{currentUser ? 'Cloud Synced' : 'Offline'}</span>
                 </span>
               </div>
             </div>
@@ -93,6 +103,33 @@ export function NumberListScreen({
 
           {/* Header Action Buttons */}
           <div className="flex items-center gap-2">
+            {/* Account / Google Sign In Button */}
+            <button
+              onClick={() => {
+                triggerHaptic('light');
+                onOpenAccount();
+              }}
+              className="p-1.5 sm:px-2.5 sm:py-2 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 hover:border-zinc-900 dark:hover:border-zinc-400 active:scale-95 transition-all min-h-[44px] flex items-center gap-1.5"
+              title={currentUser ? `Signed in as ${currentUser.displayName || currentUser.email}` : 'Sign in with Google'}
+              aria-label="Account and cloud sync"
+            >
+              {currentUser?.photoURL ? (
+                <div className="relative">
+                  <img
+                    src={currentUser.photoURL}
+                    alt={currentUser.displayName || 'Google Profile'}
+                    className="w-5 h-5 rounded-full object-cover"
+                  />
+                  <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-500 ring-1 ring-white dark:ring-zinc-900"></span>
+                </div>
+              ) : (
+                <UserIcon className="w-4 h-4 stroke-[2]" />
+              )}
+              <span className="hidden md:inline text-xs font-bold">
+                {currentUser ? (currentUser.displayName?.split(' ')[0] || 'Account') : 'Account'}
+              </span>
+            </button>
+
             <button
               onClick={() => {
                 triggerHaptic('light');

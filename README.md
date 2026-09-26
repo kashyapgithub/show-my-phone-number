@@ -41,6 +41,12 @@ Show My Number restores consumer autonomy by decoupling retail loyalty identific
 - **Brand Cards & Phone Slots**: Supports up to 20 saved entries across phone numbers and brand customer IDs, with store brand tagging, instant category filtering (All, Phones, Cards), and primary default pinning.
 - **Smart Chunking & Formatting**: Supports multiple digit chunking styles (Smart Contextual, 5-5 for UPI/Asian markets, 3-3-4 for US/Intl, and unformatted continuous).
 
+### Cloud Database & Google Account Synchronization
+- **Google Sign-In**: Optional one-tap authentication with your Google account via Firebase Authentication.
+- **Real-Time Cloud Firestore Sync**: Automatically synchronizes your saved numbers and store loyalty cards across devices in real time.
+- **Hybrid Offline-First Architecture**: Operates 100% offline in Guest mode without requiring an account. Logging in seamlessly merges offline cards into your private cloud account.
+- **Cross-Platform Backup**: Never lose loyalty IDs or secondary contact cards when changing devices or reinstalling.
+
 ### AI-Powered Receipt and Bill Scanner
 - **Merchant Brand Extraction**: Uses Google Gemini 2.5 Flash Vision (`@google/genai`) to automatically read receipt and invoice headers, identifying store and merchant brand names (e.g., Costco, Decathlon, Starbucks, Target, Walmart).
 - **Customer and Membership ID Detection**: Automatically parses and extracts member numbers, loyalty account IDs, and phone numbers printed on physical store bills or paper slips.
@@ -54,6 +60,7 @@ Show My Number restores consumer autonomy by decoupling retail loyalty identific
 - **Frontend Core**: React 19, TypeScript, Vite
 - **Styling**: Tailwind CSS v4, JetBrains Mono, Plus Jakarta Sans
 - **Mobile Runtime**: Capacitor (Native Android runtime)
+- **Backend & Database**: Firebase Authentication (Google Identity), Cloud Firestore (`firebase`)
 - **AI & Vision Analysis**: Google Gemini 2.5 Flash (`@google/genai`)
 - **Icons**: Lucide React
 - **Browser APIs**: Screen Wake Lock API
