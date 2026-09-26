@@ -105,7 +105,7 @@ export function NumberListScreen({
             </div>
             <div>
               <h1 className="text-base sm:text-lg font-black tracking-tight text-zinc-900 dark:text-white leading-none">
-                Show My Number
+                Show Number to Cashier
               </h1>
               <div className="flex items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400 mt-1">
                 <span>{numbers.length}/{MAX_NUMBERS_LIMIT} slots</span>

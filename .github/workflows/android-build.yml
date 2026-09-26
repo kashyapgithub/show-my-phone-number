@@ -54,6 +54,6 @@ jobs:
       - name: Upload Debug APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: show-my-number-debug-apk
+          name: show-number-to-cashier-debug-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
           retention-days: 14

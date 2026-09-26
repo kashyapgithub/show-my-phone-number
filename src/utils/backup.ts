@@ -15,7 +15,7 @@ export function exportBackup(numbers: PhoneNumberItem[]): void {
   if (typeof window === 'undefined') return;
 
   const data: BackupData = {
-    app: 'Show My Number',
+    app: 'Show Number to Cashier',
     version: '1.0',
     exportedAt: new Date().toISOString(),
     itemCount: numbers.length,
@@ -29,7 +29,7 @@ export function exportBackup(numbers: PhoneNumberItem[]): void {
   const dateStr = new Date().toISOString().split('T')[0];
   const a = document.createElement('a');
   a.href = url;
-  a.download = `show-my-number-backup-${dateStr}.json`;
+  a.download = `show-number-to-cashier-backup-${dateStr}.json`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);

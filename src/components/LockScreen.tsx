@@ -64,7 +64,7 @@ export function LockScreen({ onUnlock }: LockScreenProps) {
           <Lock className="w-8 h-8 text-blue-400 stroke-[2]" />
         </div>
         <h2 className="text-xl font-black tracking-tight text-white">
-          Show My Number
+          Show Number to Cashier
         </h2>
         <p className="text-xs text-zinc-400 mt-1">
           Privacy Guard active. Enter your 4-digit PIN.

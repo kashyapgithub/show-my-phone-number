@@ -1,6 +1,6 @@
-# Show My Number
+# Show Number to Cashier
 
-Show My Number is a privacy-first, high-contrast utility designed to protect personal contact information at retail checkout counters and point-of-sale (POS) terminals. It enables shoppers to display, manage, and segment phone numbers visually, eliminating verbal dictation in public queues and preventing primary phone numbers from being harvested by commercial retail tracking systems.
+Show Number to Cashier is a privacy-first, high-contrast utility designed to protect personal contact information at retail checkout counters and point-of-sale (POS) terminals. It enables shoppers to display, manage, and segment phone numbers visually, eliminating verbal dictation in public queues and preventing primary phone numbers from being harvested by commercial retail tracking systems.
 
 ---
 
@@ -13,9 +13,9 @@ At retail checkout counters, supermarkets, apparel chains, and pharmacies, moder
 2. **Eavesdropping in Public Queues**: Reciting a phone number out loud in noisy or crowded stores exposes sensitive personal contact information to nearby bystanders, cashier staff, and surveillance equipment.
 
 ### The Solution: Identity Segmentation and Visual Handshake
-Show My Number restores consumer autonomy by decoupling retail loyalty identification from personal communication channels:
+Show Number to Cashier restores consumer autonomy by decoupling retail loyalty identification from personal communication channels:
 
-- **Phone Numbers as Disposable Store Identifiers**: Not everyone wants to surrender their personal phone number to retail chains. Show My Number allows users to store and organize multiple numbers (e.g., secondary SIMs, dedicated loyalty numbers, or brand-specific burner lines). In this model, the number serves strictly as an anonymous account ID for that store brand rather than a private contact channel.
+- **Phone Numbers as Disposable Store Identifiers**: Not everyone wants to surrender their personal phone number to retail chains. Show Number to Cashier allows users to store and organize multiple numbers (e.g., secondary SIMs, dedicated loyalty numbers, or brand-specific burner lines). In this model, the number serves strictly as an anonymous account ID for that store brand rather than a private contact channel.
 - **Silent Visual Exchange**: Replaces verbal disclosure with a bold, legible visual display that cashiers can read or scan directly across retail counters.
 - **Anti-Shoulder Surfing Controls**: Phone digits remain masked by default (`••••• •••••`) to prevent line observers from reading the screen, exposing digits only upon an intentional press-and-hold gesture.
 - **Zero-Knowledge Architecture (Developer Zero-Access Guarantee)**:
@@ -152,7 +152,7 @@ This repository includes an automated GitHub Actions pipeline (`.github/workflow
 1. Validates and builds the React web application.
 2. Synchronizes assets with the Capacitor Android project.
 3. Compiles the Android APK using Gradle on Java 21.
-4. Generates and uploads a downloadable debug APK artifact (`show-my-number-debug-apk`).
+4. Generates and uploads a downloadable debug APK artifact (`show-number-to-cashier-debug-apk`).
 
 ---
 
