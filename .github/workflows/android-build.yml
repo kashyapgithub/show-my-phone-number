@@ -41,9 +41,8 @@ jobs:
         run: |
           npm run build
 
-      - name: Add and Sync Android Platform
+      - name: Sync Web Assets to Android Platform
         run: |
-          npx cap add android
           npx cap sync android
 
       - name: Build Android APK with Gradle
