@@ -41,9 +41,8 @@ jobs:
         run: |
           npm run build
 
-      - name: Initialize Capacitor Android Project
+      - name: Add and Sync Android Platform
         run: |
-          npx cap init "Show My Number" "com.showmynumber.app" --web-dir "dist"
           npx cap add android
           npx cap sync android
 
