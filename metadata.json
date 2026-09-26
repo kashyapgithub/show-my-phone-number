@@ -1,0 +1,6 @@
+{
+  "name": "Show My Number",
+  "description": "Display your phone number in giant, unmistakable high-contrast text for cashiers, counters, and loyalty checkouts.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
