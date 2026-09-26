@@ -8,6 +8,7 @@ import { User } from 'firebase/auth';
 import { PhoneNumberItem, GroupingFormat, ItemType, ScannedBillResult, MAX_NUMBERS_LIMIT } from './types';
 import { 
   loadStoredNumbers, 
+  loadStoredNumbersAsync,
   saveStoredNumbers, 
   getSampleNumbers 
 } from './utils/storage';
@@ -19,11 +20,13 @@ import {
   syncLocalNumbersToCloud, 
   subscribeToUserNumbers 
 } from './services/dbService';
+import { isAppLockEnabled } from './utils/security';
 import { NumberListScreen } from './components/NumberListScreen';
 import { DisplayScreen } from './components/DisplayScreen';
 import { AddEditModal } from './components/AddEditModal';
 import { BillScanModal } from './components/BillScanModal';
 import { AccountModal } from './components/AccountModal';
+import { LockScreen } from './components/LockScreen';
 import { triggerHaptic } from './utils/haptics';
 
 export default function App() {
@@ -36,8 +39,18 @@ export default function App() {
   const [prefilledScannedData, setPrefilledScannedData] = useState<ScannedBillResult | null>(null);
   const [hasCheckedFirstLaunch, setHasCheckedFirstLaunch] = useState<boolean>(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [isAppLocked, setIsAppLocked] = useState<boolean>(() => isAppLockEnabled());
 
-  // Sync to local storage whenever numbers change for instant offline backup
+  // Transparent AES-256 decrypted load on cold start
+  useEffect(() => {
+    loadStoredNumbersAsync().then((items) => {
+      if (items.length > 0) {
+        setNumbers(items);
+      }
+    });
+  }, []);
+
+  // Sync to encrypted local storage whenever numbers change for instant offline backup
   useEffect(() => {
     saveStoredNumbers(numbers);
   }, [numbers]);
@@ -241,6 +254,19 @@ export default function App() {
     triggerHaptic('medium');
   };
 
+  const handleImportNumbers = (imported: PhoneNumberItem[]) => {
+    setNumbers(imported);
+    saveStoredNumbers(imported);
+    if (currentUser) {
+      syncLocalNumbersToCloud(currentUser.uid, imported);
+    }
+  };
+
+  // Privacy Guard Lock Screen overlay
+  if (isAppLocked) {
+    return <LockScreen onUnlock={() => setIsAppLocked(false)} />;
+  }
+
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 font-sans text-zinc-900 dark:text-zinc-100 selection:bg-zinc-900 selection:text-white">
       {/* Active Display Screen (The Hero Experience) */}
@@ -288,12 +314,13 @@ export default function App() {
         onApplyResult={handleApplyScanResult}
       />
 
-      {/* Account & Cloud Sync Modal */}
+      {/* Account, Privacy & Cloud Sync Modal */}
       <AccountModal
         isOpen={isAccountModalOpen}
         onClose={() => setIsAccountModalOpen(false)}
         currentUser={currentUser}
-        itemCount={numbers.length}
+        numbers={numbers}
+        onImportNumbers={handleImportNumbers}
       />
     </div>
   );

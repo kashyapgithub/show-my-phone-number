@@ -13,12 +13,15 @@ import {
   ChevronLeft, 
   ChevronRight,
   ShieldAlert,
-  Sparkles
+  Sparkles,
+  Store,
+  ShieldCheck
 } from 'lucide-react';
 import { PhoneNumberItem, DisplayTheme, GroupingFormat } from '../types';
 import { formatIdentifier, maskIdentifier } from '../utils/formatter';
 import { triggerHaptic } from '../utils/haptics';
 import { useWakeLock } from '../hooks/useWakeLock';
+import { getBrandColor } from '../utils/brandColors';
 
 interface DisplayScreenProps {
   numberItem: PhoneNumberItem;
@@ -204,11 +207,72 @@ export function DisplayScreen({
     }
   };
 
+  // Auto-conceal 45s inactivity timer
+  const [autoConcealNotice, setAutoConcealNotice] = useState<boolean>(false);
+  const inactivityTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const resetInactivity = useCallback(() => {
+    if (inactivityTimerRef.current) {
+      clearTimeout(inactivityTimerRef.current);
+    }
+    inactivityTimerRef.current = setTimeout(() => {
+      if (isRevealed || revealLocked) {
+        setIsRevealed(false);
+        setRevealLocked(false);
+        triggerHaptic('double');
+        setAutoConcealNotice(true);
+        setTimeout(() => setAutoConcealNotice(false), 3000);
+      }
+    }, 45000); // 45 seconds idle
+  }, [isRevealed, revealLocked]);
+
+  useEffect(() => {
+    resetInactivity();
+    const handleActivity = () => resetInactivity();
+    window.addEventListener('pointerdown', handleActivity);
+    window.addEventListener('keydown', handleActivity);
+    return () => {
+      if (inactivityTimerRef.current) clearTimeout(inactivityTimerRef.current);
+      window.removeEventListener('pointerdown', handleActivity);
+      window.removeEventListener('keydown', handleActivity);
+    };
+  }, [resetInactivity]);
+
+  // Touch Swipe tracking for quick card switching
+  const touchStartXRef = useRef<number | null>(null);
+  const touchStartYRef = useRef<number | null>(null);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartXRef.current = e.touches[0].clientX;
+    touchStartYRef.current = e.touches[0].clientY;
+    resetInactivity();
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartXRef.current === null || touchStartYRef.current === null) return;
+    const deltaX = touchStartXRef.current - e.changedTouches[0].clientX;
+    const deltaY = touchStartYRef.current - e.changedTouches[0].clientY;
+
+    // Horizontal swipe threshold: 50px delta with low vertical angle
+    if (Math.abs(deltaX) > 50 && Math.abs(deltaX) > Math.abs(deltaY) * 1.4) {
+      if (deltaX > 0 && hasNext) {
+        goToNext();
+      } else if (deltaX < 0 && hasPrevious) {
+        goToPrevious();
+      }
+    }
+    touchStartXRef.current = null;
+    touchStartYRef.current = null;
+  };
+
   const isActuallyShowingDigits = isRevealed || revealLocked;
+  const brandStyle = getBrandColor(numberItem.brandName);
 
   return (
     <div
       ref={containerRef}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
       className="fixed inset-0 z-50 flex flex-col select-none overflow-hidden transition-colors duration-200"
       style={{
         backgroundColor: bgColor,
@@ -340,13 +404,15 @@ export function DisplayScreen({
             <div className="mb-3.5 flex flex-wrap items-center justify-center gap-2">
               {numberItem.brandName && (
                 <span
-                  className="text-xs sm:text-sm font-black uppercase tracking-wider px-3.5 py-1 rounded-full shadow-sm"
+                  className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-black uppercase tracking-wider px-3.5 py-1 rounded-full shadow-sm"
                   style={{
-                    backgroundColor: textColor,
-                    color: bgColor,
+                    backgroundColor: brandStyle.bg,
+                    color: brandStyle.text,
+                    border: `1.5px solid ${brandStyle.border}`,
                   }}
                 >
-                  {numberItem.brandName}
+                  <Store className="w-3.5 h-3.5" />
+                  <span>{numberItem.brandName}</span>
                 </span>
               )}
               <span
@@ -449,6 +515,14 @@ export function DisplayScreen({
       {rotationAngle === 180 && (
         <div className="bg-blue-600 text-white text-center py-1 text-xs font-semibold z-20">
           Screen inverted 180° — Point top of phone towards cashier
+        </div>
+      )}
+
+      {/* Auto-conceal Idle Notification Toast */}
+      {autoConcealNotice && (
+        <div className="fixed top-16 left-1/2 -translate-x-1/2 z-40 bg-zinc-900/90 text-white dark:bg-white/90 dark:text-zinc-900 px-4 py-2 rounded-2xl shadow-xl border border-zinc-700/60 dark:border-zinc-300 text-xs font-bold flex items-center gap-2 animate-fadeIn backdrop-blur-md">
+          <ShieldCheck className="w-4 h-4 text-emerald-400 dark:text-emerald-600 shrink-0" />
+          <span>Auto-concealed after 45s idle for privacy</span>
         </div>
       )}
 

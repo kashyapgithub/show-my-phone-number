@@ -30,16 +30,21 @@ Show My Number restores consumer autonomy by decoupling retail loyalty identific
 - **Counter-Facing Inversion (180° Flip)**: Flips the display upside-down relative to the device holder, allowing attendants and cashiers across plexiglass partitions to read digits naturally without passing or tilting the device.
 - **Landscape Fill Mode**: Rotates the display horizontally to maximize digit scale on wider screens and tablets.
 - **Screen Keep-Awake**: Integrates the Web Screen Wake Lock API to prevent screen timeout while presenting numbers at checkout.
+- **Fullscreen Touch Swiping**: Natural horizontal flick gestures to switch instantly between loyalty cards at checkout without finding small buttons.
 
-### Privacy and Protection
+### Privacy and Hardened Security
 - **Default Masking**: Digits remain obfuscated (`••••• •••••`) upon opening to eliminate line-of-sight exposure.
 - **Press-and-Hold Reveal**: Digits are visible only while actively touching and holding the screen.
-- **One-Tap Instant Conceal**: Immediately re-masks numbers the moment the cashier finishes entering the digits.
-- **Strictly Offline Storage**: Zero network dependencies for stored data; numbers never leave the local device storage.
+- **Auto-Conceal Inactivity Lock**: Re-masks digits automatically after 45 seconds of idle time if the device is set down on a counter.
+- **App Privacy Guard (PIN & Biometrics)**: Optional 4-digit PIN with salted SHA-256 hashing and WebAuthn fingerprint unlock to guard the app.
+- **Zero-Knowledge AES-256-GCM Storage**: All offline records are encrypted on-device via Web Crypto API before persisting to local storage.
 
-### Store Cards and Identity Slots
+### Store Cards, Identity Slots & Search
 - **Brand Cards & Phone Slots**: Supports up to 20 saved entries across phone numbers and brand customer IDs, with store brand tagging, instant category filtering (All, Phones, Cards), and primary default pinning.
+- **Curated & Deterministic Brand Badges**: Recognizes major retail chains (Costco, Starbucks, Target, Decathlon, Walmart, IKEA, etc.) and renders distinct brand color chips.
+- **Real-Time Search Bar**: Instantly filter through saved cards by store name, digits, label, or notes in milliseconds.
 - **Smart Chunking & Formatting**: Supports multiple digit chunking styles (Smart Contextual, 5-5 for UPI/Asian markets, 3-3-4 for US/Intl, and unformatted continuous).
+- **Offline JSON Backup & Portability**: 1-tap download and restore of all cards via encrypted JSON without touching cloud servers.
 
 ### Cloud Database & Google Account Synchronization
 - **Google Sign-In**: Optional one-tap authentication with your Google account via Firebase Authentication.

@@ -1,4 +1,5 @@
 import { PhoneNumberItem, AppSettings, MAX_NUMBERS_LIMIT } from '../types';
+import { encryptString, decryptString } from './crypto';
 
 const STORAGE_KEY_NUMBERS = 'show_my_number_items_v1';
 const STORAGE_KEY_SETTINGS = 'show_my_number_settings_v1';
@@ -11,13 +12,31 @@ export const DEFAULT_SETTINGS: AppSettings = {
   orientationFlip: false,
 };
 
+// In-memory decrypted cache for instantaneous zero-latency UI access
+let inMemoryNumbersCache: PhoneNumberItem[] | null = null;
+
+/**
+ * Synchronous read from in-memory cache or fallback plaintext
+ */
 export function loadStoredNumbers(): PhoneNumberItem[] {
+  if (inMemoryNumbersCache !== null) {
+    return inMemoryNumbersCache;
+  }
+
   try {
     const raw = localStorage.getItem(STORAGE_KEY_NUMBERS);
     if (!raw) return [];
+
+    // If already encrypted, we need async decryption (initially return empty or wait for loadStoredNumbersAsync)
+    if (raw.startsWith('__ENC_V1__:')) {
+      return inMemoryNumbersCache || [];
+    }
+
     const parsed = JSON.parse(raw);
     if (Array.isArray(parsed)) {
-      return parsed.slice(0, MAX_NUMBERS_LIMIT);
+      const items = parsed.slice(0, MAX_NUMBERS_LIMIT);
+      inMemoryNumbersCache = items;
+      return items;
     }
     return [];
   } catch (err) {
@@ -26,11 +45,58 @@ export function loadStoredNumbers(): PhoneNumberItem[] {
   }
 }
 
-export function saveStoredNumbers(numbers: PhoneNumberItem[]): void {
+/**
+ * Asynchronous load with transparent AES-256-GCM decryption
+ */
+export async function loadStoredNumbersAsync(): Promise<PhoneNumberItem[]> {
   try {
-    localStorage.setItem(STORAGE_KEY_NUMBERS, JSON.stringify(numbers.slice(0, MAX_NUMBERS_LIMIT)));
+    const raw = localStorage.getItem(STORAGE_KEY_NUMBERS);
+    if (!raw) {
+      inMemoryNumbersCache = [];
+      return [];
+    }
+
+    const decrypted = await decryptString(raw);
+    const parsed = JSON.parse(decrypted);
+    if (Array.isArray(parsed)) {
+      const items = parsed.slice(0, MAX_NUMBERS_LIMIT);
+      inMemoryNumbersCache = items;
+
+      // Transparent upgrade: If it was previously unencrypted, encrypt it now
+      if (!raw.startsWith('__ENC_V1__:')) {
+        saveStoredNumbers(items);
+      }
+
+      return items;
+    }
+    return [];
   } catch (err) {
-    console.error('Failed to save numbers to localStorage:', err);
+    console.error('Failed to decrypt and load stored numbers:', err);
+    return inMemoryNumbersCache || [];
+  }
+}
+
+/**
+ * Save numbers with transparent on-device AES-256-GCM encryption
+ */
+export function saveStoredNumbers(numbers: PhoneNumberItem[]): void {
+  const sliced = numbers.slice(0, MAX_NUMBERS_LIMIT);
+  inMemoryNumbersCache = sliced;
+
+  try {
+    const json = JSON.stringify(sliced);
+    // Encrypt asynchronously and persist ciphertext
+    encryptString(json).then((encrypted) => {
+      try {
+        localStorage.setItem(STORAGE_KEY_NUMBERS, encrypted);
+      } catch (e) {
+        console.error('Failed to write encrypted numbers to localStorage:', e);
+      }
+    }).catch((e) => {
+      console.error('Encryption promise error:', e);
+    });
+  } catch (err) {
+    console.error('Failed to serialize numbers:', err);
   }
 }
 

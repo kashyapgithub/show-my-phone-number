@@ -14,12 +14,17 @@ import {
   Store,
   Camera,
   User as UserIcon,
-  Cloud
+  Cloud,
+  Search,
+  X as ClearIcon,
+  Lock
 } from 'lucide-react';
 import { User } from 'firebase/auth';
 import { PhoneNumberItem, MAX_NUMBERS_LIMIT } from '../types';
 import { formatIdentifier } from '../utils/formatter';
 import { triggerHaptic } from '../utils/haptics';
+import { getBrandColor } from '../utils/brandColors';
+import { isAppLockEnabled } from '../utils/security';
 import { PrivacyFootnote } from './PrivacyFootnote';
 
 interface NumberListScreenProps {
@@ -48,16 +53,30 @@ export function NumberListScreen({
   onLoadDemo,
 }: NumberListScreenProps) {
   const [filter, setFilter] = useState<'all' | 'phone' | 'customer_id'>('all');
+  const [searchQuery, setSearchQuery] = useState<string>('');
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const isAtLimit = numbers.length >= MAX_NUMBERS_LIMIT;
   const phoneCount = numbers.filter((n) => n.itemType !== 'customer_id').length;
   const cardCount = numbers.filter((n) => n.itemType === 'customer_id').length;
+  const isLocked = isAppLockEnabled();
 
   const filteredNumbers = numbers.filter((item) => {
-    if (filter === 'phone') return item.itemType !== 'customer_id';
-    if (filter === 'customer_id') return item.itemType === 'customer_id';
+    // Type filter
+    if (filter === 'phone' && item.itemType === 'customer_id') return false;
+    if (filter === 'customer_id' && item.itemType !== 'customer_id') return false;
+
+    // Search query filter
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      const matchBrand = item.brandName?.toLowerCase().includes(q);
+      const matchLabel = item.label.toLowerCase().includes(q);
+      const matchNumber = item.rawNumber.toLowerCase().includes(q);
+      const matchNotes = item.notes?.toLowerCase().includes(q);
+      return !!(matchBrand || matchLabel || matchNumber || matchNotes);
+    }
+
     return true;
   });
 
@@ -97,6 +116,15 @@ export function NumberListScreen({
                   <Cloud className="w-3 h-3" />
                   <span>{currentUser ? 'Cloud Synced' : 'Offline'}</span>
                 </span>
+                {isLocked && (
+                  <>
+                    <span aria-hidden="true">·</span>
+                    <span className="inline-flex items-center gap-1 font-semibold text-blue-600 dark:text-blue-400" title="Privacy Guard Lock Active">
+                      <Lock className="w-3 h-3" />
+                      <span>PIN Protected</span>
+                    </span>
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -229,6 +257,31 @@ export function NumberListScreen({
         ) : (
           /* List of Saved Numbers & Cards */
           <div className="space-y-3">
+            {/* Live Search Bar */}
+            <div className="relative">
+              <Search className="w-4 h-4 text-zinc-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search brand, number, or card label..."
+                className="w-full pl-9 pr-9 py-2 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-xs sm:text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-900 dark:focus:ring-white transition-all shadow-sm"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    triggerHaptic('light');
+                    setSearchQuery('');
+                  }}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
+                  aria-label="Clear search query"
+                >
+                  <ClearIcon className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+
             {/* Filter Tabs */}
             <div className="flex items-center justify-between pb-1">
               <div className="flex items-center gap-1.5 p-1 rounded-xl bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-xs">
@@ -302,12 +355,22 @@ export function NumberListScreen({
                       <div className="flex-1 min-w-0">
                         <div className="flex flex-wrap items-center gap-2 mb-1.5">
                           {/* Brand badge if present */}
-                          {item.brandName && (
-                            <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-sm">
-                              <Store className="w-2.5 h-2.5" />
-                              {item.brandName}
-                            </span>
-                          )}
+                          {item.brandName && (() => {
+                            const brandStyle = getBrandColor(item.brandName);
+                            return (
+                              <span 
+                                className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md shadow-sm"
+                                style={{
+                                  backgroundColor: brandStyle.bg,
+                                  color: brandStyle.text,
+                                  border: `1px solid ${brandStyle.border}`,
+                                }}
+                              >
+                                <Store className="w-2.5 h-2.5" />
+                                {item.brandName}
+                              </span>
+                            );
+                          })()}
 
                           {/* Card or Phone tag */}
                           <span className="text-xs font-bold uppercase tracking-wide text-zinc-500 dark:text-zinc-400 truncate">
