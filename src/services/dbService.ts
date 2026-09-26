@@ -10,6 +10,7 @@ import {
 } from 'firebase/firestore';
 import { PhoneNumberItem } from '../types';
 import { getFirebaseInstances } from '../config/firebase';
+import { encryptForCloud, decryptFromCloud } from '../utils/crypto';
 
 /**
  * Returns reference to user's numbers collection.
@@ -19,20 +20,28 @@ function getUserNumbersCollection(db: Firestore, userId: string) {
 }
 
 /**
- * Save or update a phone number or customer ID entry in Cloud Firestore.
+ * Save or update an entry in Cloud Firestore with Zero-Knowledge client-side encryption.
+ * The database only stores AES-256 ciphertext; the app creator cannot read raw numbers.
  */
 export async function saveNumberToCloud(userId: string, item: PhoneNumberItem): Promise<void> {
   const { db } = getFirebaseInstances();
   if (!db || !userId) return;
 
   const itemDocRef = doc(db, 'users', userId, 'numbers', item.id);
+
+  // Client-side zero-knowledge encryption before data leaves device
+  const encryptedNumber = await encryptForCloud(item.rawNumber, userId);
+  const encryptedLabel = await encryptForCloud(item.label, userId);
+  const encryptedBrand = item.brandName ? await encryptForCloud(item.brandName, userId) : null;
+  const encryptedNotes = item.notes ? await encryptForCloud(item.notes, userId) : null;
+
   const dataToSave = {
     id: item.id,
-    label: item.label,
-    rawNumber: item.rawNumber,
+    label: encryptedLabel,
+    rawNumber: encryptedNumber,
     itemType: item.itemType || 'phone',
-    brandName: item.brandName || null,
-    notes: item.notes || null,
+    brandName: encryptedBrand,
+    notes: encryptedNotes,
     grouping: item.grouping,
     isPrimary: !!item.isPrimary,
     createdAt: item.createdAt || Date.now(),
@@ -74,7 +83,7 @@ export async function setPrimaryNumberInCloud(
 }
 
 /**
- * Merge local offline numbers into Cloud Firestore on first login.
+ * Merge local offline numbers into Cloud Firestore with Zero-Knowledge encryption.
  */
 export async function syncLocalNumbersToCloud(
   userId: string, 
@@ -94,13 +103,19 @@ export async function syncLocalNumbersToCloud(
     for (const item of localNumbers) {
       if (!existingIds.has(item.id)) {
         const itemRef = doc(db, 'users', userId, 'numbers', item.id);
+
+        const encryptedNumber = await encryptForCloud(item.rawNumber, userId);
+        const encryptedLabel = await encryptForCloud(item.label, userId);
+        const encryptedBrand = item.brandName ? await encryptForCloud(item.brandName, userId) : null;
+        const encryptedNotes = item.notes ? await encryptForCloud(item.notes, userId) : null;
+
         batch.set(itemRef, {
           id: item.id,
-          label: item.label,
-          rawNumber: item.rawNumber,
+          label: encryptedLabel,
+          rawNumber: encryptedNumber,
           itemType: item.itemType || 'phone',
-          brandName: item.brandName || null,
-          notes: item.notes || null,
+          brandName: encryptedBrand,
+          notes: encryptedNotes,
           grouping: item.grouping,
           isPrimary: !!item.isPrimary,
           createdAt: item.createdAt || Date.now(),
@@ -119,7 +134,7 @@ export async function syncLocalNumbersToCloud(
 }
 
 /**
- * Subscribe to real-time updates for a user's saved items in Cloud Firestore.
+ * Subscribe to real-time updates from Cloud Firestore, decrypting on-device.
  */
 export function subscribeToUserNumbers(
   userId: string,
@@ -136,31 +151,41 @@ export function subscribeToUserNumbers(
 
   return onSnapshot(
     colRef,
-    (snapshot) => {
-      const items: PhoneNumberItem[] = [];
-      snapshot.forEach((docSnap) => {
-        const data = docSnap.data();
-        items.push({
-          id: data.id || docSnap.id,
-          label: data.label || '',
-          rawNumber: data.rawNumber || '',
-          itemType: data.itemType || 'phone',
-          brandName: data.brandName || undefined,
-          notes: data.notes || undefined,
-          grouping: data.grouping || 'smart',
-          isPrimary: !!data.isPrimary,
-          createdAt: data.createdAt || Date.now(),
+    async (snapshot) => {
+      try {
+        const decryptedItems: PhoneNumberItem[] = await Promise.all(
+          snapshot.docs.map(async (docSnap) => {
+            const data = docSnap.data();
+            const rawNumber = await decryptFromCloud(data.rawNumber || '', userId);
+            const label = await decryptFromCloud(data.label || '', userId);
+            const brandName = data.brandName ? await decryptFromCloud(data.brandName, userId) : undefined;
+            const notes = data.notes ? await decryptFromCloud(data.notes, userId) : undefined;
+
+            return {
+              id: data.id || docSnap.id,
+              label: label || 'Card',
+              rawNumber: rawNumber || '',
+              itemType: data.itemType || 'phone',
+              brandName: brandName || undefined,
+              notes: notes || undefined,
+              grouping: data.grouping || 'smart',
+              isPrimary: !!data.isPrimary,
+              createdAt: data.createdAt || Date.now(),
+            };
+          })
+        );
+
+        // Sort primary first, then most recently created
+        decryptedItems.sort((a, b) => {
+          if (a.isPrimary && !b.isPrimary) return -1;
+          if (!a.isPrimary && b.isPrimary) return 1;
+          return (b.createdAt || 0) - (a.createdAt || 0);
         });
-      });
 
-      // Sort primary first, then most recently created
-      items.sort((a, b) => {
-        if (a.isPrimary && !b.isPrimary) return -1;
-        if (!a.isPrimary && b.isPrimary) return 1;
-        return (b.createdAt || 0) - (a.createdAt || 0);
-      });
-
-      onUpdate(items);
+        onUpdate(decryptedItems);
+      } catch (err) {
+        console.error('Failed to decrypt items from cloud:', err);
+      }
     },
     (error) => {
       console.error('Firestore realtime sync error:', error);

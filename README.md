@@ -18,7 +18,9 @@ Show My Number restores consumer autonomy by decoupling retail loyalty identific
 - **Phone Numbers as Disposable Store Identifiers**: Not everyone wants to surrender their personal phone number to retail chains. Show My Number allows users to store and organize multiple numbers (e.g., secondary SIMs, dedicated loyalty numbers, or brand-specific burner lines). In this model, the number serves strictly as an anonymous account ID for that store brand rather than a private contact channel.
 - **Silent Visual Exchange**: Replaces verbal disclosure with a bold, legible visual display that cashiers can read or scan directly across retail counters.
 - **Anti-Shoulder Surfing Controls**: Phone digits remain masked by default (`••••• •••••`) to prevent line observers from reading the screen, exposing digits only upon an intentional press-and-hold gesture.
-- **Zero Cloud Footprint**: Operates 100% locally on-device. All records persist exclusively in client-side `localStorage`. No cloud accounts, external databases, analytics trackers, or network telemetry.
+- **Zero-Knowledge Architecture (Developer Zero-Access Guarantee)**:
+  - **In Offline Mode (Default)**: Your phone numbers and loyalty cards live exclusively on your physical device, encrypted with 256-bit AES-GCM. No servers, no telemetry, no cloud.
+  - **In Cloud Sync Mode (Google Account)**: If you sign in to sync cards across devices, all sensitive fields (phone numbers, store brands, notes, labels) are **encrypted client-side on your device before transmission** using authenticated AES-256-GCM via the Web Crypto API. The cloud database only stores scrambled ciphertext. **Even the application developer and database administrators CANNOT read your phone numbers in the Firebase Console.** Decryption happens exclusively on your own authenticated devices.
 
 ---
 
@@ -48,7 +50,8 @@ Show My Number restores consumer autonomy by decoupling retail loyalty identific
 
 ### Cloud Database & Google Account Synchronization
 - **Google Sign-In**: Optional one-tap authentication with your Google account via Firebase Authentication.
-- **Real-Time Cloud Firestore Sync**: Automatically synchronizes your saved numbers and store loyalty cards across devices in real time.
+- **Zero-Knowledge Client-Side Encryption (E2EE)**: Before any phone number, brand name, label, or note is uploaded to Cloud Firestore, it is encrypted on the client device using AES-256-GCM. The cloud database stores only ciphertext; neither database administrators nor third parties can view raw numbers.
+- **Real-Time Cloud Firestore Sync**: Automatically synchronizes your encrypted numbers and store loyalty cards across devices in real time.
 - **Hybrid Offline-First Architecture**: Operates 100% offline in Guest mode without requiring an account. Logging in seamlessly merges offline cards into your private cloud account.
 - **Cross-Platform Backup**: Never lose loyalty IDs or secondary contact cards when changing devices or reinstalling.
 

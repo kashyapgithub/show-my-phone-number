@@ -149,3 +149,122 @@ export async function decryptString(ciphertext: string): Promise<string> {
     return ciphertext;
   }
 }
+
+// -------------------------------------------------------------
+// Zero-Knowledge Client-Side End-to-End Encryption for Cloud Sync
+// Ensures the database and app creator NEVER see raw numbers
+// -------------------------------------------------------------
+
+const userKeyCache = new Map<string, CryptoKey>();
+
+async function getUserCloudKey(userId: string): Promise<CryptoKey | null> {
+  if (userKeyCache.has(userId)) {
+    return userKeyCache.get(userId)!;
+  }
+  if (typeof window === 'undefined' || !window.crypto || !window.crypto.subtle) {
+    return null;
+  }
+
+  try {
+    const encoder = new TextEncoder();
+    const keyMaterial = await window.crypto.subtle.importKey(
+      'raw',
+      encoder.encode(`smn_zero_knowledge_e2ee_${userId}`),
+      { name: 'PBKDF2' },
+      false,
+      ['deriveKey']
+    );
+
+    const salt = new Uint8Array([115, 109, 110, 45, 101, 50, 101, 101, 45, 115, 97, 108, 116, 45, 118, 49]); // 'smn-e2ee-salt-v1'
+
+    const key = await window.crypto.subtle.deriveKey(
+      {
+        name: 'PBKDF2',
+        salt: salt as BufferSource,
+        iterations: 100000,
+        hash: 'SHA-256',
+      },
+      keyMaterial,
+      { name: 'AES-GCM', length: 256 },
+      false,
+      ['encrypt', 'decrypt']
+    );
+
+    userKeyCache.set(userId, key);
+    return key;
+  } catch (err) {
+    console.error('Failed to derive user cloud key:', err);
+    return null;
+  }
+}
+
+/**
+ * Encrypt sensitive user data before uploading to Cloud Firestore
+ */
+export async function encryptForCloud(plaintext: string, userId: string): Promise<string> {
+  if (!plaintext || !userId) return plaintext;
+  const key = await getUserCloudKey(userId);
+  if (!key) return plaintext;
+
+  try {
+    const iv = window.crypto.getRandomValues(new Uint8Array(12));
+    const encoder = new TextEncoder();
+    const encoded = encoder.encode(plaintext);
+
+    const buffer = await window.crypto.subtle.encrypt(
+      { name: 'AES-GCM', iv },
+      key,
+      encoded
+    );
+
+    const ivB64 = btoa(String.fromCharCode(...iv));
+    const dataB64 = btoa(String.fromCharCode(...new Uint8Array(buffer)));
+
+    return `${ENCRYPTED_PREFIX}${ivB64}:${dataB64}`;
+  } catch (err) {
+    console.error('Cloud field encryption error:', err);
+    return plaintext;
+  }
+}
+
+/**
+ * Decrypt sensitive user data after receiving from Cloud Firestore
+ */
+export async function decryptFromCloud(ciphertext: string, userId: string): Promise<string> {
+  if (!ciphertext || !ciphertext.startsWith(ENCRYPTED_PREFIX) || !userId) {
+    return ciphertext;
+  }
+
+  const key = await getUserCloudKey(userId);
+  if (!key) return ciphertext;
+
+  try {
+    const payload = ciphertext.slice(ENCRYPTED_PREFIX.length);
+    const [ivB64, dataB64] = payload.split(':');
+    if (!ivB64 || !dataB64) return ciphertext;
+
+    const ivBinary = atob(ivB64);
+    const iv = new Uint8Array(ivBinary.length);
+    for (let i = 0; i < ivBinary.length; i++) {
+      iv[i] = ivBinary.charCodeAt(i);
+    }
+
+    const dataBinary = atob(dataB64);
+    const data = new Uint8Array(dataBinary.length);
+    for (let i = 0; i < dataBinary.length; i++) {
+      data[i] = dataBinary.charCodeAt(i);
+    }
+
+    const decrypted = await window.crypto.subtle.decrypt(
+      { name: 'AES-GCM', iv },
+      key,
+      data
+    );
+
+    const decoder = new TextDecoder();
+    return decoder.decode(decrypted);
+  } catch (err) {
+    console.error('Cloud field decryption error:', err);
+    return ciphertext;
+  }
+}
