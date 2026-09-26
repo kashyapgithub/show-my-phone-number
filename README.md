@@ -1,28 +1,46 @@
 # Show My Number
 
-Show My Number is a high-contrast, large-typography application engineered for retail counters, point-of-sale (POS) checkouts, and customer verification environments. It provides a clear visual interface for displaying phone numbers across retail counters, removing the need to recite sensitive contact information aloud in public or noisy settings.
+Show My Number is a privacy-first, high-contrast utility designed to protect personal contact information at retail checkout counters and point-of-sale (POS) terminals. It enables shoppers to display, manage, and segment phone numbers visually, eliminating verbal dictation in public queues and preventing primary phone numbers from being harvested by commercial retail tracking systems.
+
+---
+
+## Rationale: Privacy and Data Protection
+
+### The Retail Data Collection Problem
+At retail checkout counters, supermarkets, apparel chains, and pharmacies, modern point-of-sale (POS) billing systems routinely mandate entering a customer phone number before completing transactions, issuing digital receipts, or applying loyalty discounts. This practice presents critical privacy risks:
+
+1. **Transaction Profiling and Spam Exploitation**: Retail CRM and billing software links your phone number directly to an itemized audit trail of everything you purchase—including transaction times, basket contents, brand preferences, and spending frequency. This personal purchasing profile is frequently fed into aggressive telemarketing engines, automated SMS marketing pipelines, and third-party data aggregators.
+2. **Eavesdropping in Public Queues**: Reciting a phone number out loud in noisy or crowded stores exposes sensitive personal contact information to nearby bystanders, cashier staff, and surveillance equipment.
+
+### The Solution: Identity Segmentation and Visual Handshake
+Show My Number restores consumer autonomy by decoupling retail loyalty identification from personal communication channels:
+
+- **Phone Numbers as Disposable Store Identifiers**: Not everyone wants to surrender their personal phone number to retail chains. Show My Number allows users to store and organize multiple numbers (e.g., secondary SIMs, dedicated loyalty numbers, or brand-specific burner lines). In this model, the number serves strictly as an anonymous account ID for that store brand rather than a private contact channel.
+- **Silent Visual Exchange**: Replaces verbal disclosure with a bold, legible visual display that cashiers can read or scan directly across retail counters.
+- **Anti-Shoulder Surfing Controls**: Phone digits remain masked by default (`••••• •••••`) to prevent line observers from reading the screen, exposing digits only upon an intentional press-and-hold gesture.
+- **Zero Cloud Footprint**: Operates 100% locally on-device. All records persist exclusively in client-side `localStorage`. No cloud accounts, external databases, analytics trackers, or network telemetry.
 
 ---
 
 ## Features
 
-### Legibility and Display
-- **Dynamic Large Typography**: Automatically calculates the maximum viewport font size to guarantee legibility at arm's length across retail counters without text wrapping.
-- **High-Contrast Interface**: Pure black (`#000000`) on pure white (`#ffffff`) by default for fluorescent store environments, with a single-tap inverted OLED dark mode.
-- **Counter-Facing Flip (180°)**: Inverts the display orientation so counter attendants and cashiers can read the number directly without tilting or passing the device.
-- **Landscape Mode**: Reorients the viewport horizontally to maximize display width on larger screens.
-- **Screen Keep-Awake**: Integrates the Web Screen Wake Lock API to prevent display sleep during counter interactions.
+### Legibility and Presentation
+- **Dynamic Large-Scale Typography**: Automatically calculates the maximum viewport font size to guarantee legibility at arm's length across retail counters without text wrapping.
+- **High-Contrast Interface**: Pure black (`#000000`) on pure white (`#ffffff`) by default for brightly lit store environments, with a single-tap OLED dark mode inversion.
+- **Counter-Facing Inversion (180° Flip)**: Flips the display upside-down relative to the device holder, allowing attendants and cashiers across plexiglass partitions to read digits naturally without passing or tilting the device.
+- **Landscape Fill Mode**: Rotates the display horizontally to maximize digit scale on wider screens and tablets.
+- **Screen Keep-Awake**: Integrates the Web Screen Wake Lock API to prevent screen timeout while presenting numbers at checkout.
 
-### Privacy and Security
-- **Default Masking**: Masks phone digits by default (`••••• •••••`) to mitigate shoulder surfing in public queues.
-- **Press-and-Hold Reveal**: Displays digits only while actively holding the screen.
-- **Immediate Masking**: Provides a dedicated one-tap control to conceal digits immediately after verification.
-- **Local Persistence**: Stores configuration and numbers strictly in client-side `localStorage`. No user accounts, cloud databases, external analytics, or remote logging.
+### Privacy and Protection
+- **Default Masking**: Digits remain obfuscated (`••••• •••••`) upon opening to eliminate line-of-sight exposure.
+- **Press-and-Hold Reveal**: Digits are visible only while actively touching and holding the screen.
+- **One-Tap Instant Conceal**: Immediately re-masks numbers the moment the cashier finishes entering the digits.
+- **Strictly Offline Storage**: Zero network dependencies for stored data; numbers never leave the local device storage.
 
 ### Accessibility and POS Integration
-- **Optical QR Code Generation**: Converts contact numbers into standard optical QR codes compatible with handheld 2D barcode and POS scanners.
-- **Digit-by-Digit Speech Synthesis**: Built-in speech synthesis enunciates each digit sequentially with pacing for high-noise environments or visually impaired operators.
-- **Multi-Profile Management**: Supports saving multiple labelled numbers (such as Personal, Business, UPI, and Loyalty) with primary selection.
+- **Optical QR Code Generation**: Generates high-resolution optical QR codes for handheld 2D barcode scanner guns and automated POS readers.
+- **Digit-by-Digit Audio Enunciation**: Uses the Web Speech API to read digits sequentially with controlled pauses, designed for loud environments or visually impaired operators.
+- **Multi-Profile Management**: Saves and organizes multiple tagged profiles (e.g., Personal, Secondary, Brand Loyalty, Store Card) with instant one-tap switching and primary pinning.
 
 ---
 
@@ -30,7 +48,7 @@ Show My Number is a high-contrast, large-typography application engineered for r
 
 - **Frontend Core**: React 19, TypeScript, Vite
 - **Styling**: Tailwind CSS v4, JetBrains Mono, Plus Jakarta Sans
-- **Mobile Runtime**: Capacitor (Android native shell)
+- **Mobile Runtime**: Capacitor (Native Android runtime)
 - **Icons**: Lucide React
 - **QR Generation**: QRCode
 - **Browser APIs**: Screen Wake Lock API, Web Speech API
