@@ -37,10 +37,9 @@ Show My Number restores consumer autonomy by decoupling retail loyalty identific
 - **One-Tap Instant Conceal**: Immediately re-masks numbers the moment the cashier finishes entering the digits.
 - **Strictly Offline Storage**: Zero network dependencies for stored data; numbers never leave the local device storage.
 
-### Accessibility and POS Integration
-- **Optical QR Code Generation**: Generates high-resolution optical QR codes for handheld 2D barcode scanner guns and automated POS readers (encodes either phone numbers or customer IDs).
-- **Sequential Audio Enunciation**: Uses the Web Speech API to read digits or spell out alphanumeric customer IDs with controlled pauses, designed for loud environments or visually impaired operators.
+### Store Cards and Identity Slots
 - **Brand Cards & Phone Slots**: Supports up to 20 saved entries across phone numbers and brand customer IDs, with store brand tagging, instant category filtering (All, Phones, Cards), and primary default pinning.
+- **Smart Chunking & Formatting**: Supports multiple digit chunking styles (Smart Contextual, 5-5 for UPI/Asian markets, 3-3-4 for US/Intl, and unformatted continuous).
 
 ### AI-Powered Receipt and Bill Scanner
 - **Merchant Brand Extraction**: Uses Google Gemini 2.5 Flash Vision (`@google/genai`) to automatically read receipt and invoice headers, identifying store and merchant brand names (e.g., Costco, Decathlon, Starbucks, Target, Walmart).
@@ -57,8 +56,7 @@ Show My Number restores consumer autonomy by decoupling retail loyalty identific
 - **Mobile Runtime**: Capacitor (Native Android runtime)
 - **AI & Vision Analysis**: Google Gemini 2.5 Flash (`@google/genai`)
 - **Icons**: Lucide React
-- **QR Generation**: QRCode
-- **Browser APIs**: Screen Wake Lock API, Web Speech API
+- **Browser APIs**: Screen Wake Lock API
 
 ---
 

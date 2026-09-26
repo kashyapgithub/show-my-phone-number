@@ -10,14 +10,11 @@ import {
   Minimize, 
   Copy, 
   Check, 
-  QrCode, 
-  Volume2, 
   ChevronLeft, 
   ChevronRight,
   ShieldAlert,
   Sparkles
 } from 'lucide-react';
-import QRCode from 'qrcode';
 import { PhoneNumberItem, DisplayTheme, GroupingFormat } from '../types';
 import { formatIdentifier, maskIdentifier } from '../utils/formatter';
 import { triggerHaptic } from '../utils/haptics';
@@ -54,13 +51,6 @@ export function DisplayScreen({
 
   // Copy toast state
   const [copied, setCopied] = useState<boolean>(false);
-
-  // QR Mode toggle
-  const [showQr, setShowQr] = useState<boolean>(false);
-  const [qrDataUrl, setQrDataUrl] = useState<string>('');
-
-  // Speaking state
-  const [isSpeaking, setIsSpeaking] = useState<boolean>(false);
 
   // Keep awake hook
   const { isLocked: isWakeLocked } = useWakeLock(true);
@@ -111,22 +101,6 @@ export function DisplayScreen({
     window.addEventListener('resize', recalculateFontSize);
     return () => window.removeEventListener('resize', recalculateFontSize);
   }, [recalculateFontSize, rotationAngle]);
-
-  // Generate QR code on demand
-  useEffect(() => {
-    if (showQr) {
-      QRCode.toDataURL(numberItem.rawNumber, {
-        width: 320,
-        margin: 2,
-        color: {
-          dark: isDark ? '#ffffff' : '#000000',
-          light: isDark ? '#000000' : '#ffffff',
-        },
-      })
-        .then((url) => setQrDataUrl(url))
-        .catch((err) => console.error('QR generation error:', err));
-    }
-  }, [showQr, numberItem.rawNumber, isDark]);
 
   // Fullscreen change listener
   useEffect(() => {
@@ -209,31 +183,6 @@ export function DisplayScreen({
       if (prev === 180) return 90; // Landscape 90
       return 0; // Normal
     });
-  };
-
-  const handleSpeak = () => {
-    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
-    
-    if (isSpeaking) {
-      window.speechSynthesis.cancel();
-      setIsSpeaking(false);
-      return;
-    }
-
-    // For phone numbers: digits. For customer IDs: letters and digits with pauses
-    const chars = formattedNumber.replace(/[\s\-_.]/g, '').split('');
-    const textToSpeak = chars.join(' . ');
-
-    const utterance = new SpeechSynthesisUtterance(textToSpeak);
-    utterance.rate = 0.85; // deliberate, clear speed
-    utterance.pitch = 1.0;
-    utterance.onend = () => setIsSpeaking(false);
-    utterance.onerror = () => setIsSpeaking(false);
-
-    window.speechSynthesis.cancel();
-    window.speechSynthesis.speak(utterance);
-    setIsSpeaking(true);
-    triggerHaptic('light');
   };
 
   // Multi-number navigation
@@ -351,25 +300,6 @@ export function DisplayScreen({
             )}
           </button>
 
-          {/* QR Code view toggle */}
-          <button
-            onClick={() => {
-              triggerHaptic('light');
-              setShowQr(!showQr);
-            }}
-            className={`p-2.5 rounded-xl transition-all active:scale-95 min-h-[44px] min-w-[44px] flex items-center justify-center ${
-              showQr ? 'ring-2 ring-blue-500' : ''
-            }`}
-            style={{
-              backgroundColor: controlBg,
-              border: `1px solid ${controlBorder}`,
-            }}
-            title="Show QR Code for Scanner"
-            aria-label="Toggle QR code"
-          >
-            <QrCode className="w-5 h-5" />
-          </button>
-
           {/* Fullscreen Toggle */}
           <button
             onClick={toggleFullscreen}
@@ -404,27 +334,8 @@ export function DisplayScreen({
         tabIndex={0}
         aria-label="Phone number display area. Press and hold anywhere to reveal digits."
       >
-        {showQr ? (
-          /* Optical QR Mode for Cashier Scanner Guns */
-          <div className="flex flex-col items-center justify-center p-6 text-center animate-fadeIn">
-            {qrDataUrl ? (
-              <img
-                src={qrDataUrl}
-                alt={`QR code for ${numberItem.rawNumber}`}
-                className="w-64 h-64 sm:w-80 sm:h-80 border-4 border-current p-2 rounded-2xl bg-white shadow-xl"
-              />
-            ) : (
-              <div className="w-64 h-64 border border-dashed rounded-xl flex items-center justify-center">
-                Generating QR...
-              </div>
-            )}
-            <p className="mt-4 text-xs font-semibold uppercase tracking-wider opacity-75">
-              Cashier: Scan with optical barcode / QR reader
-            </p>
-          </div>
-        ) : (
-          /* Giant Legibility Phone Number */
-          <div className="w-full flex flex-col items-center justify-center text-center">
+        {/* Giant Legibility Phone Number */}
+        <div className="w-full flex flex-col items-center justify-center text-center">
             {/* Context Label & Brand Badge above number */}
             <div className="mb-3.5 flex flex-wrap items-center justify-center gap-2">
               {numberItem.brandName && (
@@ -532,7 +443,6 @@ export function DisplayScreen({
               </p>
             </div>
           </div>
-        )}
       </main>
 
       {/* Cashier Flip Helper Banner (only if flipped 180) */}
@@ -626,22 +536,6 @@ export function DisplayScreen({
                 <span className="hidden sm:inline text-xs font-bold">Copy</span>
               </>
             )}
-          </button>
-
-          {/* Speech Audio Readout for noisy counter or visually impaired */}
-          <button
-            onClick={handleSpeak}
-            className={`p-2.5 rounded-xl transition-all active:scale-95 min-h-[44px] min-w-[44px] flex items-center justify-center ${
-              isSpeaking ? 'bg-blue-600 text-white ring-2 ring-blue-400' : ''
-            }`}
-            style={{
-              backgroundColor: isSpeaking ? undefined : controlBg,
-              border: `1px solid ${controlBorder}`,
-            }}
-            title={isSpeaking ? 'Stop speaking' : 'Read digits aloud'}
-            aria-label="Read digits aloud"
-          >
-            <Volume2 className="w-5 h-5" />
           </button>
         </div>
       </footer>
