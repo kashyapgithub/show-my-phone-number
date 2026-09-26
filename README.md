@@ -33,6 +33,7 @@ Show Number to Cashier restores consumer autonomy by decoupling retail loyalty i
 - **Landscape Fill Mode**: Rotates the display horizontally to maximize digit scale on wider screens and tablets.
 - **Screen Keep-Awake**: Integrates the Web Screen Wake Lock API to prevent screen timeout while presenting numbers at checkout.
 - **Fullscreen Touch Swiping**: Natural horizontal flick gestures to switch instantly between loyalty cards at checkout without finding small buttons.
+- **Instant Checkout Payment Launchers ("now pay with")**: Direct 1-tap shortcuts below the number display to open PhonePe, Google Pay, and Paytm Android apps directly after showing your number to the cashier.
 
 ### Privacy and Hardened Security
 - **Default Masking**: Digits remain obfuscated (`••••• •••••`) upon opening to eliminate line-of-sight exposure.

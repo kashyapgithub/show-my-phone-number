@@ -22,6 +22,7 @@ import { formatIdentifier, maskIdentifier } from '../utils/formatter';
 import { triggerHaptic } from '../utils/haptics';
 import { useWakeLock } from '../hooks/useWakeLock';
 import { getBrandColor } from '../utils/brandColors';
+import { NowPayWith } from './NowPayWith';
 
 interface DisplayScreenProps {
   numberItem: PhoneNumberItem;
@@ -466,6 +467,9 @@ export function DisplayScreen({
             >
               {isActuallyShowingDigits ? formattedNumber : maskedNumber}
             </div>
+
+            {/* Quick Payment Apps Launcher ('now pay with') */}
+            <NowPayWith theme={theme} className="mt-5 sm:mt-6" />
 
             {/* Hold Indicator / Status Cue */}
             <div className="mt-6 flex flex-col items-center gap-2">
