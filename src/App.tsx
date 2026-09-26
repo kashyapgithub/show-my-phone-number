@@ -4,7 +4,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { PhoneNumberItem, GroupingFormat, MAX_NUMBERS_LIMIT } from './types';
+import { PhoneNumberItem, GroupingFormat, ItemType, MAX_NUMBERS_LIMIT } from './types';
 import { 
   loadStoredNumbers, 
   saveStoredNumbers, 
@@ -88,6 +88,9 @@ export default function App() {
   const handleSaveItem = (itemData: {
     label: string;
     rawNumber: string;
+    itemType?: ItemType;
+    brandName?: string;
+    notes?: string;
     grouping: GroupingFormat;
     isPrimary: boolean;
   }) => {
@@ -100,6 +103,9 @@ export default function App() {
               ...item,
               label: itemData.label,
               rawNumber: itemData.rawNumber,
+              itemType: itemData.itemType || 'phone',
+              brandName: itemData.brandName,
+              notes: itemData.notes,
               grouping: itemData.grouping,
               isPrimary: itemData.isPrimary,
             };
@@ -111,13 +117,16 @@ export default function App() {
           return item;
         });
       } else {
-        // Adding new (max 10 limit)
+        // Adding new
         if (prev.length >= MAX_NUMBERS_LIMIT) return prev;
 
         const newItem: PhoneNumberItem = {
           id: `num_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
           label: itemData.label,
           rawNumber: itemData.rawNumber,
+          itemType: itemData.itemType || 'phone',
+          brandName: itemData.brandName,
+          notes: itemData.notes,
           grouping: itemData.grouping,
           isPrimary: itemData.isPrimary || prev.length === 0,
           createdAt: Date.now(),

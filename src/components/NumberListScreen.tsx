@@ -9,12 +9,12 @@ import {
   AlertCircle,
   Copy,
   Check,
-  Shield,
-  Layers,
-  ArrowUpDown
+  CreditCard,
+  Phone,
+  Store
 } from 'lucide-react';
 import { PhoneNumberItem, MAX_NUMBERS_LIMIT } from '../types';
-import { formatPhoneNumber } from '../utils/formatter';
+import { formatIdentifier } from '../utils/formatter';
 import { triggerHaptic } from '../utils/haptics';
 import { PrivacyFootnote } from './PrivacyFootnote';
 
@@ -37,14 +37,23 @@ export function NumberListScreen({
   onSetPrimary,
   onLoadDemo,
 }: NumberListScreenProps) {
+  const [filter, setFilter] = useState<'all' | 'phone' | 'customer_id'>('all');
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const isAtLimit = numbers.length >= MAX_NUMBERS_LIMIT;
+  const phoneCount = numbers.filter((n) => n.itemType !== 'customer_id').length;
+  const cardCount = numbers.filter((n) => n.itemType === 'customer_id').length;
+
+  const filteredNumbers = numbers.filter((item) => {
+    if (filter === 'phone') return item.itemType !== 'customer_id';
+    if (filter === 'customer_id') return item.itemType === 'customer_id';
+    return true;
+  });
 
   const handleCopy = (e: React.MouseEvent, item: PhoneNumberItem) => {
     e.stopPropagation();
-    const formatted = formatPhoneNumber(item.rawNumber, item.grouping);
+    const formatted = formatIdentifier(item.rawNumber, item.itemType, item.grouping);
     navigator.clipboard.writeText(formatted);
     triggerHaptic('light');
     setCopiedId(item.id);
@@ -58,7 +67,7 @@ export function NumberListScreen({
 
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 flex flex-col antialiased">
-      {/* Top Header Bar following Top Bar Contract: Brand + Meta + Primary Action */}
+      {/* Top Header Bar */}
       <header className="sticky top-0 z-30 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md border-b border-zinc-200 dark:border-zinc-800 px-4 sm:px-6 py-3.5 transition-colors">
         <div className="max-w-2xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -70,7 +79,7 @@ export function NumberListScreen({
                 Show My Number
               </h1>
               <div className="flex items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400 mt-1">
-                <span>Giant cashier display</span>
+                <span>Cashier display &amp; store cards</span>
                 <span aria-hidden="true">·</span>
                 <span className="font-semibold text-zinc-700 dark:text-zinc-300">
                   {numbers.length} of {MAX_NUMBERS_LIMIT} slots
@@ -79,7 +88,7 @@ export function NumberListScreen({
             </div>
           </div>
 
-          {/* Add Number Header Action */}
+          {/* Add Entry Header Action */}
           <button
             onClick={() => {
               triggerHaptic('light');
@@ -91,37 +100,37 @@ export function NumberListScreen({
                 ? 'bg-zinc-200 dark:bg-zinc-800 text-zinc-400 cursor-not-allowed opacity-60'
                 : 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 hover:opacity-90 active:scale-95'
             }`}
-            aria-label="Add new phone number"
+            aria-label="Add new entry"
           >
             <Plus className="w-4 h-4 stroke-[2.5]" />
-            <span>Add Number</span>
+            <span>Add Entry</span>
           </button>
         </div>
       </header>
 
       {/* Main Body */}
       <main className="flex-1 max-w-2xl w-full mx-auto p-4 sm:p-6 flex flex-col justify-start">
-        {/* Limit Warning Banner if at 10 */}
+        {/* Limit Warning Banner if at limit */}
         {isAtLimit && (
           <div className="mb-4 p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-200 text-xs flex items-center gap-2.5">
             <AlertCircle className="w-4 h-4 shrink-0 text-amber-600 dark:text-amber-400" />
             <span>
-              <strong>Maximum 10 numbers limit reached.</strong> Delete or edit an existing number to add another.
+              <strong>Maximum {MAX_NUMBERS_LIMIT} slots limit reached.</strong> Delete or edit an existing entry to add another.
             </span>
           </div>
         )}
 
-        {/* Empty State Prompt (Immediately Prompts User to Add First Number) */}
+        {/* Empty State Prompt */}
         {numbers.length === 0 ? (
           <div className="my-auto py-12 px-6 text-center border-2 border-dashed border-zinc-300 dark:border-zinc-800 rounded-3xl bg-white dark:bg-zinc-900/50 shadow-sm animate-fadeIn">
             <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-900 dark:text-white">
               <Smartphone className="w-8 h-8 text-zinc-700 dark:text-zinc-300" />
             </div>
             <h2 className="text-xl font-black text-zinc-900 dark:text-white tracking-tight">
-              No phone numbers added yet
+              No numbers or store cards added yet
             </h2>
             <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400 max-w-md mx-auto leading-relaxed">
-              Add your mobile number once, then hold up your screen at checkout counters so cashiers can read it without you having to shout it out loud.
+              Add your phone numbers or brand customer IDs once, then hold up your screen at checkout counters so cashiers can read it without shouting across the store.
             </p>
 
             <div className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-3">
@@ -133,7 +142,7 @@ export function NumberListScreen({
                 className="w-full sm:w-auto px-6 py-3.5 rounded-xl bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 font-bold text-sm shadow-md hover:opacity-90 active:scale-95 transition-all flex items-center justify-center gap-2 min-h-[48px]"
               >
                 <Plus className="w-4 h-4 stroke-[2.5]" />
-                <span>Add Your First Number</span>
+                <span>Add First Entry</span>
               </button>
 
               <button
@@ -143,22 +152,70 @@ export function NumberListScreen({
                 }}
                 className="w-full sm:w-auto px-5 py-3 rounded-xl border border-zinc-300 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 font-semibold text-xs hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors min-h-[44px]"
               >
-                Load Sample Numbers
+                Load Sample Numbers &amp; Cards
               </button>
             </div>
           </div>
         ) : (
-          /* List of Saved Numbers */
+          /* List of Saved Numbers & Cards */
           <div className="space-y-3">
-            <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 px-1">
-              <span>Saved Numbers (Tap to Show)</span>
-              <span>{numbers.length} of 10</span>
+            {/* Filter Tabs */}
+            <div className="flex items-center justify-between pb-1">
+              <div className="flex items-center gap-1.5 p-1 rounded-xl bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-xs">
+                <button
+                  onClick={() => {
+                    triggerHaptic('light');
+                    setFilter('all');
+                  }}
+                  className={`px-3 py-1.5 rounded-lg font-bold transition-all ${
+                    filter === 'all'
+                      ? 'bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white shadow-sm'
+                      : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-200'
+                  }`}
+                >
+                  All ({numbers.length})
+                </button>
+                <button
+                  onClick={() => {
+                    triggerHaptic('light');
+                    setFilter('phone');
+                  }}
+                  className={`px-3 py-1.5 rounded-lg font-bold transition-all flex items-center gap-1.5 ${
+                    filter === 'phone'
+                      ? 'bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white shadow-sm'
+                      : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-200'
+                  }`}
+                >
+                  <Phone className="w-3 h-3" />
+                  <span>Phones ({phoneCount})</span>
+                </button>
+                <button
+                  onClick={() => {
+                    triggerHaptic('light');
+                    setFilter('customer_id');
+                  }}
+                  className={`px-3 py-1.5 rounded-lg font-bold transition-all flex items-center gap-1.5 ${
+                    filter === 'customer_id'
+                      ? 'bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white shadow-sm'
+                      : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-200'
+                  }`}
+                >
+                  <CreditCard className="w-3 h-3" />
+                  <span>Cards ({cardCount})</span>
+                </button>
+              </div>
+
+              <span className="text-xs font-semibold text-zinc-400 hidden sm:inline">
+                Tap to display
+              </span>
             </div>
 
+            {/* Render Items */}
             <div className="space-y-2.5">
-              {numbers.map((item, index) => {
-                const formatted = formatPhoneNumber(item.rawNumber, item.grouping);
+              {filteredNumbers.map((item) => {
+                const formatted = formatIdentifier(item.rawNumber, item.itemType, item.grouping);
                 const isDeleting = deleteConfirmId === item.id;
+                const isCard = item.itemType === 'customer_id';
 
                 return (
                   <div
@@ -173,22 +230,40 @@ export function NumberListScreen({
                     <div className="flex items-center justify-between gap-3">
                       {/* Left: Info */}
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
+                        <div className="flex flex-wrap items-center gap-2 mb-1.5">
+                          {/* Brand badge if present */}
+                          {item.brandName && (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-sm">
+                              <Store className="w-2.5 h-2.5" />
+                              {item.brandName}
+                            </span>
+                          )}
+
+                          {/* Card or Phone tag */}
                           <span className="text-xs font-bold uppercase tracking-wide text-zinc-500 dark:text-zinc-400 truncate">
                             {item.label}
                           </span>
+
+                          {/* Primary tag */}
                           {item.isPrimary && (
                             <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-600 dark:text-amber-400">
                               <Star className="w-2.5 h-2.5 fill-amber-500" />
-                              Primary
+                              Default
                             </span>
                           )}
                         </div>
 
-                        {/* High-visibility Formatted Number */}
+                        {/* High-visibility Formatted Number / Customer ID */}
                         <div className="font-mono font-bold text-xl sm:text-2xl text-zinc-900 dark:text-white tracking-wider tabular-nums truncate">
                           {formatted}
                         </div>
+
+                        {/* Optional Notes */}
+                        {item.notes && (
+                          <div className="text-xs text-zinc-400 dark:text-zinc-500 mt-1 truncate">
+                            {item.notes}
+                          </div>
+                        )}
                       </div>
 
                       {/* Right: Quick Action Controls */}
@@ -197,8 +272,8 @@ export function NumberListScreen({
                         <button
                           onClick={(e) => handleCopy(e, item)}
                           className="p-2 rounded-xl text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
-                          title="Copy number"
-                          aria-label="Copy phone number"
+                          title="Copy"
+                          aria-label="Copy to clipboard"
                         >
                           {copiedId === item.id ? (
                             <Check className="w-4 h-4 text-emerald-500" />
@@ -218,8 +293,8 @@ export function NumberListScreen({
                               ? 'text-amber-500'
                               : 'text-zinc-300 dark:text-zinc-600 hover:text-amber-400'
                           }`}
-                          title={item.isPrimary ? 'Primary number' : 'Set as primary number'}
-                          aria-label="Toggle primary number"
+                          title={item.isPrimary ? 'Default entry' : 'Set as default'}
+                          aria-label="Toggle default entry"
                         >
                           <Star className={`w-4 h-4 ${item.isPrimary ? 'fill-amber-500' : ''}`} />
                         </button>
@@ -231,8 +306,8 @@ export function NumberListScreen({
                             onEdit(item);
                           }}
                           className="p-2 rounded-xl text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
-                          title="Edit number"
-                          aria-label="Edit number"
+                          title="Edit"
+                          aria-label="Edit entry"
                         >
                           <Edit3 className="w-4 h-4" />
                         </button>
@@ -264,8 +339,8 @@ export function NumberListScreen({
                               setDeleteConfirmId(item.id);
                             }}
                             className="p-2 rounded-xl text-zinc-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
-                            title="Delete number"
-                            aria-label="Delete number"
+                            title="Delete"
+                            aria-label="Delete entry"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
@@ -309,7 +384,7 @@ export function NumberListScreen({
             }`}
           >
             <Plus className="w-4 h-4 stroke-[2.5]" />
-            <span>{isAtLimit ? 'Max 10 Numbers Reached' : 'Add Phone Number'}</span>
+            <span>{isAtLimit ? `Max ${MAX_NUMBERS_LIMIT} Slots Reached` : 'Add Number or Card'}</span>
           </button>
         </div>
       </footer>

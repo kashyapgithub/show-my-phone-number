@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 import QRCode from 'qrcode';
 import { PhoneNumberItem, DisplayTheme, GroupingFormat } from '../types';
-import { formatPhoneNumber, maskPhoneNumber } from '../utils/formatter';
+import { formatIdentifier, maskIdentifier } from '../utils/formatter';
 import { triggerHaptic } from '../utils/haptics';
 import { useWakeLock } from '../hooks/useWakeLock';
 
@@ -72,8 +72,8 @@ export function DisplayScreen({
   const [fontSizePx, setFontSizePx] = useState<number>(56);
 
   // Current formatted strings
-  const formattedNumber = formatPhoneNumber(numberItem.rawNumber, currentGrouping);
-  const maskedNumber = maskPhoneNumber(formattedNumber);
+  const formattedNumber = formatIdentifier(numberItem.rawNumber, numberItem.itemType, currentGrouping);
+  const maskedNumber = maskIdentifier(formattedNumber);
 
   // Color mapping
   const isDark = theme === 'white-on-black';
@@ -220,9 +220,9 @@ export function DisplayScreen({
       return;
     }
 
-    const digitsOnly = numberItem.rawNumber.replace(/\D/g, '');
-    // Insert pauses between digits for crystal clear recitation
-    const textToSpeak = digitsOnly.split('').join(' . ');
+    // For phone numbers: digits. For customer IDs: letters and digits with pauses
+    const chars = formattedNumber.replace(/[\s\-_.]/g, '').split('');
+    const textToSpeak = chars.join(' . ');
 
     const utterance = new SpeechSynthesisUtterance(textToSpeak);
     utterance.rate = 0.85; // deliberate, clear speed
@@ -425,8 +425,19 @@ export function DisplayScreen({
         ) : (
           /* Giant Legibility Phone Number */
           <div className="w-full flex flex-col items-center justify-center text-center">
-            {/* Context Label above number */}
-            <div className="mb-3 flex items-center gap-2">
+            {/* Context Label & Brand Badge above number */}
+            <div className="mb-3.5 flex flex-wrap items-center justify-center gap-2">
+              {numberItem.brandName && (
+                <span
+                  className="text-xs sm:text-sm font-black uppercase tracking-wider px-3.5 py-1 rounded-full shadow-sm"
+                  style={{
+                    backgroundColor: textColor,
+                    color: bgColor,
+                  }}
+                >
+                  {numberItem.brandName}
+                </span>
+              )}
               <span
                 className="text-xs sm:text-sm font-bold uppercase tracking-widest px-3 py-1 rounded-full"
                 style={{
@@ -437,28 +448,30 @@ export function DisplayScreen({
                 {numberItem.label}
               </span>
 
-              {/* Grouping Quick Selector */}
-              <div className="flex items-center gap-1 bg-opacity-10 rounded-lg p-0.5 text-xs font-medium">
-                {(['5-5', '3-3-4', '4-3-3', 'none'] as GroupingFormat[]).map((fmt) => (
-                  <button
-                    key={fmt}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      triggerHaptic('light');
-                      setCurrentGrouping(fmt);
-                    }}
-                    className={`px-2 py-0.5 rounded text-[11px] font-semibold transition-colors ${
-                      currentGrouping === fmt
-                        ? isDark
-                          ? 'bg-white text-black'
-                          : 'bg-black text-white'
-                        : 'opacity-50 hover:opacity-100'
-                    }`}
-                  >
-                    {fmt.toUpperCase()}
-                  </button>
-                ))}
-              </div>
+              {/* Grouping Quick Selector (only for phone numbers) */}
+              {numberItem.itemType !== 'customer_id' && (
+                <div className="flex items-center gap-1 bg-opacity-10 rounded-lg p-0.5 text-xs font-medium">
+                  {(['5-5', '3-3-4', '4-3-3', 'none'] as GroupingFormat[]).map((fmt) => (
+                    <button
+                      key={fmt}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        triggerHaptic('light');
+                        setCurrentGrouping(fmt);
+                      }}
+                      className={`px-2 py-0.5 rounded text-[11px] font-semibold transition-colors ${
+                        currentGrouping === fmt
+                          ? isDark
+                            ? 'bg-white text-black'
+                            : 'bg-black text-white'
+                          : 'opacity-50 hover:opacity-100'
+                      }`}
+                    >
+                      {fmt.toUpperCase()}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Giant Digits Container */}
@@ -498,6 +511,19 @@ export function DisplayScreen({
                 >
                   <EyeOff className="w-4 h-4 text-blue-500 animate-pulse" />
                   <span>Press &amp; Hold Anywhere to Reveal</span>
+                </div>
+              )}
+
+              {numberItem.notes && (
+                <div
+                  className="px-3.5 py-1 rounded-xl text-xs font-semibold max-w-sm text-center shadow-sm"
+                  style={{
+                    backgroundColor: controlBg,
+                    color: secondaryTextColor,
+                    border: `1px solid ${controlBorder}`,
+                  }}
+                >
+                  {numberItem.notes}
                 </div>
               )}
 

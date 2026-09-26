@@ -1,4 +1,4 @@
-import { GroupingFormat } from '../types';
+import { GroupingFormat, ItemType } from '../types';
 
 export interface CleanedPhone {
   hasPlus: boolean;
@@ -141,12 +141,33 @@ function chunkDigits(prefix: string, digits: string, chunkSizes: number[]): stri
 }
 
 /**
- * Creates privacy masked dots string preserving spaces and plus sign.
+ * Formats an identifier based on whether it is a phone number or customer ID.
+ */
+export function formatIdentifier(
+  rawInput: string,
+  itemType: ItemType = 'phone',
+  grouping: GroupingFormat = 'smart'
+): string {
+  if (itemType === 'customer_id') {
+    return rawInput.trim();
+  }
+  return formatPhoneNumber(rawInput, grouping);
+}
+
+/**
+ * Creates privacy masked dots string preserving spaces, hyphens, and symbols.
  * e.g., "98765 43210" -> "••••• •••••"
- * e.g., "+1 555 123 4567" -> "+1 ••• ••• ••••"
+ * e.g., "DEC-849201" -> "•••-••••••"
+ */
+export function maskIdentifier(formattedString: string): string {
+  return formattedString.replace(/[a-zA-Z0-9]/g, '•');
+}
+
+/**
+ * Alias for maskIdentifier to maintain full backward compatibility.
  */
 export function maskPhoneNumber(formattedString: string): string {
-  return formattedString.replace(/[0-9]/g, '•');
+  return maskIdentifier(formattedString);
 }
 
 /**
@@ -174,5 +195,25 @@ export function validatePhoneNumber(input: string): { isValid: boolean; error?: 
     };
   }
 
+  return { isValid: true };
+}
+
+/**
+ * Validation for brand customer IDs, store member numbers, and loyalty cards.
+ */
+export function validateCustomerId(input: string): { isValid: boolean; error?: string } {
+  const trimmed = input.trim();
+  if (!trimmed) {
+    return { isValid: false, error: 'Customer ID / Account number is required.' };
+  }
+  if (trimmed.length < 3) {
+    return { isValid: false, error: 'Customer ID must be at least 3 characters.' };
+  }
+  if (trimmed.length > 30) {
+    return { isValid: false, error: 'Customer ID must not exceed 30 characters.' };
+  }
+  if (!/^[a-zA-Z0-9\s\-._/]+$/.test(trimmed)) {
+    return { isValid: false, error: 'Customer ID contains invalid symbols. Only letters, numbers, spaces, and -._/ are allowed.' };
+  }
   return { isValid: true };
 }
