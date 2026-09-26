@@ -14,7 +14,8 @@ export function getStoredApiKey(): string {
     // LocalStorage may be unavailable in some private browsing contexts
   }
 
-  const envKey = (import.meta as unknown as { env?: Record<string, string> }).env?.VITE_GEMINI_API_KEY;
+  const env = (import.meta as unknown as { env?: Record<string, string> }).env;
+  const envKey = env?.VITE_GEMINI_API_KEY || env?.GEMINI_API_KEY;
   if (envKey && envKey.trim()) return envKey.trim();
 
   return '';
@@ -185,7 +186,7 @@ export async function scanBillWithGemini(
 
   if (!apiKey) {
     throw new Error(
-      'Gemini API key is required. Please enter your Google Gemini API key or choose a sample receipt to test.'
+      'Live camera scanning requires an active connection. You can configure connection settings via the key icon at the top right, or test any sample bill below instantly.'
     );
   }
 

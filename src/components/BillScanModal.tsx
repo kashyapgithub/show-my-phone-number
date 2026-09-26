@@ -61,9 +61,11 @@ export function BillScanModal({
     if (isOpen) {
       const stored = getStoredApiKey();
       setApiKey(stored);
-      if (!stored) {
-        setIsApiKeySectionOpen(true);
-      }
+      setIsApiKeySectionOpen(false);
+      setSelectedFile(null);
+      setImagePreviewUrl(null);
+      setScanError(null);
+      setScannedResult(null);
     }
   }, [isOpen]);
 
@@ -178,94 +180,105 @@ export function BillScanModal({
               </p>
             </div>
           </div>
-          <button
-            onClick={() => {
-              triggerHaptic('light');
-              onClose();
-            }}
-            className="p-2 rounded-xl text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
-            aria-label="Close"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => {
+                triggerHaptic('light');
+                setIsApiKeySectionOpen(!isApiKeySectionOpen);
+              }}
+              className={`p-2 rounded-xl transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center ${
+                isApiKeySectionOpen
+                  ? 'bg-zinc-200 dark:bg-zinc-800 text-zinc-900 dark:text-white'
+                  : 'text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800'
+              }`}
+              title="Connection settings"
+              aria-label="Connection settings"
+            >
+              <Key className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => {
+                triggerHaptic('light');
+                onClose();
+              }}
+              className="p-2 rounded-xl text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+              aria-label="Close"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         {/* Modal Content */}
         <div className="p-6 overflow-y-auto space-y-5">
-          {/* API Key Configuration Accordion */}
-          <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/70 dark:bg-zinc-800/40 overflow-hidden">
-            <button
-              type="button"
-              onClick={() => setIsApiKeySectionOpen(!isApiKeySectionOpen)}
-              className="w-full px-4 py-3 flex items-center justify-between text-left text-xs font-bold text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100/50 dark:hover:bg-zinc-800/60 transition-colors min-h-[44px]"
-            >
-              <div className="flex items-center gap-2">
-                <Key className="w-3.5 h-3.5 text-zinc-600 dark:text-zinc-400" />
-                <span>Google Gemini API Key</span>
+          {/* Optional Connection Settings Drawer (Only shown if user taps Key icon) */}
+          {isApiKeySectionOpen && (
+            <div className="p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/70 dark:bg-zinc-800/40 space-y-3 animate-fadeIn">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Key className="w-4 h-4 text-zinc-600 dark:text-zinc-400" />
+                  <span className="text-xs font-bold text-zinc-800 dark:text-zinc-200">
+                    Google Gemini API Key
+                  </span>
+                </div>
                 {apiKey ? (
-                  <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-                    Configured
+                  <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                    Active
                   </span>
                 ) : (
-                  <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300">
-                    Optional for Demos
+                  <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300">
+                    Not Set
                   </span>
                 )}
               </div>
-              {isApiKeySectionOpen ? (
-                <ChevronUp className="w-4 h-4 text-zinc-400" />
-              ) : (
-                <ChevronDown className="w-4 h-4 text-zinc-400" />
-              )}
-            </button>
 
-            {isApiKeySectionOpen && (
-              <div className="px-4 pb-4 pt-1 space-y-3 border-t border-zinc-200/60 dark:border-zinc-800">
-                <p className="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed">
-                  Enter your Google Gemini API key to enable live camera receipt extraction. Your key is stored strictly on your device.
-                </p>
-                <div className="flex items-center gap-2">
-                  <div className="relative flex-1">
-                    <input
-                      type={isApiKeyVisible ? 'text' : 'password'}
-                      value={apiKey}
-                      onChange={(e) => setApiKey(e.target.value)}
-                      placeholder="AIzaSy..."
-                      className="w-full px-3.5 py-2 text-xs font-mono rounded-xl border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-900 dark:focus:ring-white pr-9 min-h-[40px]"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setIsApiKeyVisible(!isApiKeyVisible)}
-                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 p-1"
-                      aria-label="Toggle API key visibility"
-                    >
-                      {isApiKeyVisible ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                    </button>
-                  </div>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed">
+                Connect your personal Google Gemini API key to enable live camera receipt extraction. Stored strictly on your device.
+              </p>
+
+              <div className="flex items-center gap-2">
+                <div className="relative flex-1">
+                  <input
+                    type={isApiKeyVisible ? 'text' : 'password'}
+                    value={apiKey}
+                    onChange={(e) => setApiKey(e.target.value)}
+                    placeholder="AIzaSy..."
+                    className="w-full px-3.5 py-2 text-xs font-mono rounded-xl border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-900 dark:focus:ring-white pr-9 min-h-[40px]"
+                  />
                   <button
                     type="button"
-                    onClick={handleSaveApiKey}
-                    className="px-3.5 py-2 text-xs font-bold rounded-xl bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 hover:opacity-90 transition-all flex items-center gap-1.5 min-h-[40px]"
+                    onClick={() => setIsApiKeyVisible(!isApiKeyVisible)}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 p-1"
+                    aria-label="Toggle API key visibility"
                   >
-                    {apiKeySavedSuccess ? <Check className="w-3.5 h-3.5" /> : null}
-                    <span>{apiKeySavedSuccess ? 'Saved' : 'Save'}</span>
+                    {isApiKeyVisible ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                   </button>
                 </div>
-                <div className="flex items-center justify-between text-[11px] text-zinc-400">
-                  <span>Model: gemini-2.5-flash</span>
-                  <a
-                    href="https://aistudio.google.com/app/apikey"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-1 text-zinc-600 dark:text-zinc-300 hover:underline font-semibold"
-                  >
-                    <span>Get Free API Key</span>
-                    <ExternalLink className="w-3 h-3" />
-                  </a>
-                </div>
+                <button
+                  type="button"
+                  onClick={handleSaveApiKey}
+                  className="px-3.5 py-2 text-xs font-bold rounded-xl bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 hover:opacity-90 transition-all flex items-center gap-1.5 min-h-[40px]"
+                >
+                  {apiKeySavedSuccess ? <Check className="w-3.5 h-3.5" /> : null}
+                  <span>{apiKeySavedSuccess ? 'Saved' : 'Save'}</span>
+                </button>
               </div>
-            )}
-          </div>
+
+              <div className="flex items-center justify-between text-[11px] text-zinc-400">
+                <span>Model: gemini-2.5-flash</span>
+                <a
+                  href="https://aistudio.google.com/app/apikey"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1 text-zinc-600 dark:text-zinc-300 hover:underline font-semibold"
+                >
+                  <span>Get Free Key</span>
+                  <ExternalLink className="w-3 h-3" />
+                </a>
+              </div>
+            </div>
+          )}
 
           {/* Hidden File Input */}
           <input
@@ -283,33 +296,33 @@ export function BillScanModal({
               {/* Primary Capture Area */}
               <div
                 onClick={() => {
-                  if (!apiKey && !getStoredApiKey()) {
-                    setIsApiKeySectionOpen(true);
-                  }
                   fileInputRef.current?.click();
                 }}
                 className="group p-8 border-2 border-dashed border-zinc-300 dark:border-zinc-700 hover:border-zinc-900 dark:hover:border-zinc-300 rounded-3xl bg-zinc-50/50 dark:bg-zinc-800/30 cursor-pointer text-center transition-all hover:bg-zinc-100/50 dark:hover:bg-zinc-800/60"
               >
-                <div className="w-14 h-14 mx-auto mb-3.5 rounded-2xl bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 flex items-center justify-center shadow-md group-hover:scale-105 transition-transform">
-                  <Camera className="w-7 h-7" />
+                <div className="w-16 h-16 mx-auto mb-3.5 rounded-2xl bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 flex items-center justify-center shadow-md group-hover:scale-105 transition-transform">
+                  <Camera className="w-8 h-8" />
                 </div>
-                <div className="text-sm font-bold text-zinc-900 dark:text-white">
-                  Take Photo or Upload Receipt
+                <div className="text-base font-bold text-zinc-900 dark:text-white">
+                  Tap to Take Photo or Upload Receipt
                 </div>
                 <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1 max-w-xs mx-auto">
                   Hold receipt flat with good lighting. Detects store headers, membership IDs, and customer phone numbers.
                 </p>
-                <div className="mt-4 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-xs font-semibold text-zinc-700 dark:text-zinc-300 shadow-sm">
-                  <Upload className="w-3.5 h-3.5" />
-                  <span>Choose Image File</span>
+                <div className="mt-4 inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 text-xs font-bold shadow-sm hover:opacity-90 transition-opacity">
+                  <Camera className="w-4 h-4" />
+                  <span>Open Camera</span>
                 </div>
               </div>
 
               {/* Sample Receipts Preset Section */}
               <div>
-                <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-2">
-                  <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                  <span>Or Test with Sample Bills</span>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                    <span>Try with Sample Bills (Instant Demo)</span>
+                  </div>
+                  <span className="text-[11px] text-zinc-400">No camera needed</span>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   {SAMPLE_RECEIPTS.map((sample) => (
@@ -321,7 +334,7 @@ export function BillScanModal({
                     >
                       <div className="text-xs font-bold text-zinc-900 dark:text-white group-hover:text-zinc-950 dark:group-hover:text-zinc-100 flex items-center justify-between">
                         <span>{sample.store}</span>
-                        <span className="text-[10px] font-normal text-zinc-400">Sample</span>
+                        <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">Demo</span>
                       </div>
                       <div className="text-[11px] text-zinc-500 dark:text-zinc-400 font-mono mt-0.5 truncate">
                         ID: {sample.result.customerId}
