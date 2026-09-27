@@ -6,6 +6,24 @@
 const SEED_STORAGE_KEY = 'show_number_device_crypto_seed';
 const ENCRYPTED_PREFIX = '__ENC_V1__:';
 
+function getSubtleCrypto(): SubtleCrypto | null {
+  if (typeof window !== 'undefined' && window.crypto && window.crypto.subtle) {
+    return window.crypto.subtle;
+  }
+  if (typeof globalThis !== 'undefined' && globalThis.crypto && globalThis.crypto.subtle) {
+    return globalThis.crypto.subtle;
+  }
+  return null;
+}
+
+function getRandomValues(array: Uint8Array): Uint8Array {
+  const cryptoObj = (typeof window !== 'undefined' ? window.crypto : (globalThis as unknown as { crypto?: Crypto }).crypto) as { getRandomValues?: (arr: ArrayBufferView) => ArrayBufferView } | undefined;
+  if (cryptoObj?.getRandomValues) {
+    cryptoObj.getRandomValues(array as unknown as ArrayBufferView);
+  }
+  return array;
+}
+
 /**
  * Get or create a persistent device seed for key derivation
  */
@@ -161,13 +179,14 @@ async function getUserCloudKey(userId: string): Promise<CryptoKey | null> {
   if (userKeyCache.has(userId)) {
     return userKeyCache.get(userId)!;
   }
-  if (typeof window === 'undefined' || !window.crypto || !window.crypto.subtle) {
+  const subtle = getSubtleCrypto();
+  if (!subtle) {
     return null;
   }
 
   try {
     const encoder = new TextEncoder();
-    const keyMaterial = await window.crypto.subtle.importKey(
+    const keyMaterial = await subtle.importKey(
       'raw',
       encoder.encode(`smn_zero_knowledge_e2ee_${userId}`),
       { name: 'PBKDF2' },
@@ -177,7 +196,7 @@ async function getUserCloudKey(userId: string): Promise<CryptoKey | null> {
 
     const salt = new Uint8Array([115, 109, 110, 45, 101, 50, 101, 101, 45, 115, 97, 108, 116, 45, 118, 49]); // 'smn-e2ee-salt-v1'
 
-    const key = await window.crypto.subtle.deriveKey(
+    const key = await subtle.deriveKey(
       {
         name: 'PBKDF2',
         salt: salt as BufferSource,
@@ -204,15 +223,16 @@ async function getUserCloudKey(userId: string): Promise<CryptoKey | null> {
 export async function encryptForCloud(plaintext: string, userId: string): Promise<string> {
   if (!plaintext || !userId) return plaintext;
   const key = await getUserCloudKey(userId);
-  if (!key) return plaintext;
+  const subtle = getSubtleCrypto();
+  if (!key || !subtle) return plaintext;
 
   try {
-    const iv = window.crypto.getRandomValues(new Uint8Array(12));
+    const iv = getRandomValues(new Uint8Array(12));
     const encoder = new TextEncoder();
     const encoded = encoder.encode(plaintext);
 
-    const buffer = await window.crypto.subtle.encrypt(
-      { name: 'AES-GCM', iv },
+    const buffer = await subtle.encrypt(
+      { name: 'AES-GCM', iv: iv as unknown as BufferSource },
       key,
       encoded
     );
@@ -236,7 +256,8 @@ export async function decryptFromCloud(ciphertext: string, userId: string): Prom
   }
 
   const key = await getUserCloudKey(userId);
-  if (!key) return ciphertext;
+  const subtle = getSubtleCrypto();
+  if (!key || !subtle) return ciphertext;
 
   try {
     const payload = ciphertext.slice(ENCRYPTED_PREFIX.length);
@@ -255,10 +276,10 @@ export async function decryptFromCloud(ciphertext: string, userId: string): Prom
       data[i] = dataBinary.charCodeAt(i);
     }
 
-    const decrypted = await window.crypto.subtle.decrypt(
-      { name: 'AES-GCM', iv },
+    const decrypted = await subtle.decrypt(
+      { name: 'AES-GCM', iv: iv as unknown as BufferSource },
       key,
-      data
+      data as unknown as BufferSource
     );
 
     const decoder = new TextDecoder();

@@ -147,13 +147,24 @@ The compiled APK will be located at:
 android/app/build/outputs/apk/debug/app-debug.apk
 ```
 
-### Continuous Integration (CI)
+### Continuous Integration and Continuous Delivery (CI/CD)
 
-This repository includes an automated GitHub Actions pipeline (`.github/workflows/android-build.yml`). Every push or pull request to the `main` branch automatically:
-1. Validates and builds the React web application.
-2. Synchronizes assets with the Capacitor Android project.
-3. Compiles the Android APK using Gradle on Java 21.
-4. Generates and uploads a downloadable debug APK artifact (`show-number-to-cashier-debug-apk`).
+This repository implements an industry-standard, multi-stage CI/CD pipeline via GitHub Actions:
+
+1. **Continuous Integration (Quality Gate)**:
+   - **Static Analysis**: TypeScript validation (`tsc --noEmit`).
+   - **Automated Unit Testing**: 18 unit tests covering digit chunking, privacy masking, Zero-Knowledge AES-256-GCM encryption, salted SHA-256 PIN hashing, and retailer brand identification.
+   - **Production Build Integrity**: Full web bundling verification before any platform compilation.
+
+2. **Mobile CI & Packaging (`.github/workflows/android-build.yml`)**:
+   - Compiles native Android debug and release binaries on Java 21 (Zulu) with Android SDK Build-Tools 36.
+   - Generates downloadable APK artifacts (`show-number-to-cashier-debug-apk`).
+
+3. **Continuous Delivery (GitHub Releases)**:
+   - Tagging a commit with `v*` (e.g. `v1.0.0`) automatically publishes an official **GitHub Release** with auto-generated changelogs and permanent APK binaries.
+
+4. **Continuous Deployment (`.github/workflows/deploy-web.yml`)**:
+   - Automatically builds and deploys the live web application to **GitHub Pages** on every push to `main`.
 
 ---
 

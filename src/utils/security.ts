@@ -34,10 +34,11 @@ export function isPinSet(): boolean {
 /**
  * Hash PIN using salted SHA-256 via Web Crypto API
  */
-async function hashPin(pin: string, salt: string): Promise<string> {
+export async function hashPin(pin: string, salt: string): Promise<string> {
   const encoder = new TextEncoder();
   const data = encoder.encode(`${salt}:${pin}:show-my-number-secure-guard`);
-  const buffer = await window.crypto.subtle.digest('SHA-256', data);
+  const cryptoObj = typeof window !== 'undefined' ? window.crypto : globalThis.crypto;
+  const buffer = await cryptoObj.subtle.digest('SHA-256', data);
   const hashArray = Array.from(new Uint8Array(buffer));
   return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
 }
