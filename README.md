@@ -163,9 +163,6 @@ This repository implements an industry-standard, multi-stage CI/CD pipeline via 
 3. **Continuous Delivery (GitHub Releases)**:
    - Tagging a commit with `v*` (e.g. `v1.0.0`) automatically publishes an official **GitHub Release** with auto-generated changelogs and permanent APK binaries.
 
-4. **Continuous Deployment (`.github/workflows/deploy-web.yml`)**:
-   - Automatically builds and deploys the live web application to **GitHub Pages** on every push to `main`.
-
 ---
 
 ## License
